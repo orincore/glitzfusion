@@ -8,7 +8,7 @@ import { cn, fadeInUp, staggerContainer } from '@/lib/utils'
 import type { CourseInfo } from '@/data/courses'
 
 interface CourseDetailContentProps {
-  course: CourseInfo
+  course: Omit<CourseInfo, 'icon'>
 }
 
 export function CourseDetailContent({ course }: CourseDetailContentProps) {

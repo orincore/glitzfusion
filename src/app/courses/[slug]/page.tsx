@@ -6,17 +6,16 @@ import { courseSlugs, getCourseBySlug } from '@/data/courses'
 import { CourseDetailContent } from '@/components/sections/CourseDetailContent'
 
 interface CoursePageProps {
-  params: {
-    slug: string
-  }
+  params: Promise<{ slug: string }>
 }
 
 export function generateStaticParams() {
   return courseSlugs.map((slug) => ({ slug }))
 }
 
-export function generateMetadata({ params }: CoursePageProps): Metadata {
-  const course = getCourseBySlug(params.slug)
+export async function generateMetadata({ params }: CoursePageProps): Promise<Metadata> {
+  const { slug } = await params
+  const course = getCourseBySlug(slug)
 
   if (!course) {
     return {
@@ -30,12 +29,15 @@ export function generateMetadata({ params }: CoursePageProps): Metadata {
   }
 }
 
-export default function CourseDetailPage({ params }: CoursePageProps) {
-  const course = getCourseBySlug(params.slug)
+export default async function CourseDetailPage({ params }: CoursePageProps) {
+  const { slug } = await params
+  const course = getCourseBySlug(slug)
 
   if (!course) {
     notFound()
   }
+
+  const { icon: _icon, ...courseDetails } = course
 
   return (
     <div className="relative">
@@ -50,7 +52,7 @@ export default function CourseDetailPage({ params }: CoursePageProps) {
           description={course.description}
         />
 
-        <CourseDetailContent course={{ ...course, icon: undefined as never }} />
+        <CourseDetailContent course={courseDetails} />
       </div>
     </div>
   )

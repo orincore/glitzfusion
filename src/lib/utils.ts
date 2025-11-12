@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { type Variants } from "framer-motion"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -46,37 +47,52 @@ export function throttle<T extends (...args: any[]) => any>(
 }
 
 // Animation utilities
-export const fadeInUp = {
+export const fadeInUp: Variants = {
   initial: { opacity: 0, y: 30 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }
+  animate: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }
+  }
 }
 
-export const fadeIn = {
+export const fadeIn: Variants = {
   initial: { opacity: 0 },
-  animate: { opacity: 1 },
-  transition: { duration: 0.6 }
+  animate: {
+    opacity: 1,
+    transition: { duration: 0.6 }
+  }
 }
 
-export const scaleIn = {
+export const scaleIn: Variants = {
   initial: { opacity: 0, scale: 0.9 },
-  animate: { opacity: 1, scale: 1 },
-  transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }
+  animate: {
+    opacity: 1,
+    scale: 1,
+    transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }
+  }
 }
 
-export const slideInLeft = {
+export const slideInLeft: Variants = {
   initial: { opacity: 0, x: -30 },
-  animate: { opacity: 1, x: 0 },
-  transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }
+  animate: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }
+  }
 }
 
-export const slideInRight = {
+export const slideInRight: Variants = {
   initial: { opacity: 0, x: 30 },
-  animate: { opacity: 1, x: 0 },
-  transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }
+  animate: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }
+  }
 }
 
-export const staggerContainer = {
+export const staggerContainer: Variants = {
+  initial: {},
   animate: {
     transition: {
       staggerChildren: 0.1,
