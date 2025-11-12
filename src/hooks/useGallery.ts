@@ -89,7 +89,51 @@ export function useGallery(options: UseGalleryOptions = {}) {
     pagination: data?.pagination,
     loading,
     error,
-    refetch
+    refetch: fetchGallery
+  }
+}
+
+// Hook specifically for fetching featured gallery items for homepage
+export function useFeaturedGalleryForHomepage(limit: number = 6) {
+  const [items, setItems] = useState<GalleryItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchFeaturedItems = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const searchParams = new URLSearchParams()
+      searchParams.append('featured', 'true')
+      searchParams.append('limit', limit.toString())
+
+      const response = await fetch(`/api/gallery?${searchParams}`)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data: GalleryResponse = await response.json()
+      setItems(data.items || [])
+    } catch (err) {
+      console.error('Error fetching featured gallery items:', err)
+      setError(err instanceof Error ? err.message : 'Failed to fetch featured items')
+      setItems([])
+    } finally {
+      setLoading(false)
+    }
+  }, [limit])
+
+  useEffect(() => {
+    fetchFeaturedItems()
+  }, [fetchFeaturedItems])
+
+  return {
+    items,
+    loading,
+    error,
+    refetch: fetchFeaturedItems
   }
 }
 

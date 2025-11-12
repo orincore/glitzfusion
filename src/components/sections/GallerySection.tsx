@@ -1,73 +1,122 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { GlassPanel } from '@/components/ui/GlassPanel'
 import { cn, fadeInUp, staggerContainer } from '@/lib/utils'
+import { useFeaturedGallery } from '@/hooks/useGallery'
+import Link from 'next/link'
 
-const galleryItems = [
+// Fallback data for when no database items are available
+const fallbackGalleryItems = [
   {
-    id: 1,
-    category: 'Acting',
+    _id: '1',
     title: 'Method Acting Workshop',
     description: 'Students practicing emotional range and character development',
-    image: '/api/placeholder/600/400',
+    category: 'photo',
+    mediaUrl: '/api/placeholder/600/400',
+    thumbnailUrl: '/api/placeholder/600/400',
+    mimeType: 'image/jpeg',
+    featured: true,
     aspect: 'landscape'
   },
   {
-    id: 2,
-    category: 'Dance',
+    _id: '2',
     title: 'Contemporary Performance',
     description: 'Graceful movements in our state-of-the-art dance studio',
-    image: '/api/placeholder/400/600',
+    category: 'photo',
+    mediaUrl: '/api/placeholder/400/600',
+    thumbnailUrl: '/api/placeholder/400/600',
+    mimeType: 'image/jpeg',
+    featured: true,
     aspect: 'portrait'
   },
   {
-    id: 3,
-    category: 'Photography',
+    _id: '3',
     title: 'Fashion Shoot Session',
     description: 'Professional photography training with industry equipment',
-    image: '/api/placeholder/600/400',
+    category: 'photo',
+    mediaUrl: '/api/placeholder/600/400',
+    thumbnailUrl: '/api/placeholder/600/400',
+    mimeType: 'image/jpeg',
+    featured: true,
     aspect: 'landscape'
   },
   {
-    id: 4,
-    category: 'Filmmaking',
+    _id: '4',
     title: 'Behind the Scenes',
     description: 'Students directing their first short film project',
-    image: '/api/placeholder/500/500',
+    category: 'video',
+    mediaUrl: '/api/placeholder/500/500',
+    thumbnailUrl: '/api/placeholder/500/500',
+    mimeType: 'video/mp4',
+    featured: true,
     aspect: 'square'
   },
   {
-    id: 5,
-    category: 'Modeling',
+    _id: '5',
     title: 'Runway Training',
     description: 'Confidence building on our professional runway',
-    image: '/api/placeholder/400/600',
+    category: 'events',
+    mediaUrl: '/api/placeholder/400/600',
+    thumbnailUrl: '/api/placeholder/400/600',
+    mimeType: 'image/jpeg',
+    featured: true,
     aspect: 'portrait'
   },
   {
-    id: 6,
-    category: 'Acting',
+    _id: '6',
     title: 'Scene Study Class',
     description: 'Collaborative learning in intimate class settings',
-    image: '/api/placeholder/600/400',
+    category: 'behind-scenes',
+    mediaUrl: '/api/placeholder/600/400',
+    thumbnailUrl: '/api/placeholder/600/400',
+    mimeType: 'image/jpeg',
+    featured: true,
     aspect: 'landscape'
   }
 ]
 
-const categories = ['All', 'Acting', 'Dance', 'Photography', 'Filmmaking', 'Modeling']
+const categories = ['All', 'Photo', 'Video', 'Artwork', 'Behind Scenes', 'Events']
 
 export function GallerySection() {
   const [selectedCategory, setSelectedCategory] = useState('All')
-  const [selectedImage, setSelectedImage] = useState<number | null>(null)
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  
+  // Fetch featured gallery items from database
+  const { items: dbItems, loading, error } = useFeaturedGallery(6)
+  
+  // Use database items if available, otherwise fallback to static data
+  const galleryItems = dbItems.length > 0 ? dbItems.map(item => ({
+    ...item,
+    aspect: getAspectRatio(item.mimeType, item._id)
+  })) : fallbackGalleryItems
+
+  // Helper function to determine aspect ratio
+  function getAspectRatio(mimeType: string, id: string) {
+    if (mimeType.startsWith('video/')) return 'square'
+    // Distribute aspect ratios for visual variety
+    const index = parseInt(id.slice(-1)) || 0
+    if (index % 3 === 0) return 'portrait'
+    if (index % 3 === 1) return 'landscape'
+    return 'square'
+  }
 
   const filteredItems = selectedCategory === 'All' 
     ? galleryItems 
-    : galleryItems.filter(item => item.category === selectedCategory)
+    : galleryItems.filter(item => {
+        const categoryMap: { [key: string]: string } = {
+          'Photo': 'photo',
+          'Video': 'video', 
+          'Artwork': 'artwork',
+          'Behind Scenes': 'behind-scenes',
+          'Events': 'events'
+        }
+        return item.category === categoryMap[selectedCategory]
+      })
 
-  const openLightbox = (id: number) => {
+  const openLightbox = (id: string) => {
     setSelectedImage(id)
   }
 
@@ -78,7 +127,7 @@ export function GallerySection() {
   const navigateImage = (direction: 'prev' | 'next') => {
     if (selectedImage === null) return
     
-    const currentIndex = filteredItems.findIndex(item => item.id === selectedImage)
+    const currentIndex = filteredItems.findIndex(item => item._id === selectedImage)
     let newIndex
     
     if (direction === 'prev') {
@@ -87,10 +136,10 @@ export function GallerySection() {
       newIndex = currentIndex < filteredItems.length - 1 ? currentIndex + 1 : 0
     }
     
-    setSelectedImage(filteredItems[newIndex].id)
+    setSelectedImage(filteredItems[newIndex]._id)
   }
 
-  const selectedItem = selectedImage ? filteredItems.find(item => item.id === selectedImage) : null
+  const selectedItem = selectedImage ? filteredItems.find(item => item._id === selectedImage) : null
 
   return (
     <section className="py-20 relative">
@@ -141,69 +190,98 @@ export function GallerySection() {
         </motion.div>
 
         {/* Gallery Grid */}
-        <motion.div
-          layout
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-        >
-          <AnimatePresence mode="popLayout">
-            {filteredItems.map((item, index) => (
-              <motion.div
-                key={item.id}
-                layout
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={{ 
-                  duration: 0.4, 
-                  delay: index * 0.1,
-                  ease: [0.25, 0.46, 0.45, 0.94]
-                }}
-                className={cn(
-                  'group cursor-pointer',
-                  item.aspect === 'portrait' && 'md:row-span-2',
-                  item.aspect === 'landscape' && 'md:col-span-2 lg:col-span-1'
-                )}
-                onClick={() => openLightbox(item.id)}
-              >
-                <GlassPanel 
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => (
+              <GlassPanel key={i} className="aspect-video animate-pulse">
+                <div className="w-full h-full bg-gradient-to-br from-white/5 to-white/10 rounded-lg flex items-center justify-center">
+                  <Loader2 className="w-8 h-8 text-primary-gold animate-spin" />
+                </div>
+              </GlassPanel>
+            ))}
+          </div>
+        ) : (
+          <motion.div
+            layout
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          >
+            <AnimatePresence mode="popLayout">
+              {filteredItems.map((item, index) => (
+                <motion.div
+                  key={item._id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ 
+                    duration: 0.4, 
+                    delay: index * 0.1,
+                    ease: [0.25, 0.46, 0.45, 0.94]
+                  }}
                   className={cn(
-                    'relative overflow-hidden rounded-2xl transition-all duration-500',
-                    'hover:shadow-gold-glow-lg hover:-translate-y-2',
-                    item.aspect === 'portrait' ? 'aspect-[3/4]' : 
-                    item.aspect === 'square' ? 'aspect-square' : 'aspect-video'
+                    'group cursor-pointer',
+                    item.aspect === 'portrait' && 'md:row-span-2',
+                    item.aspect === 'landscape' && 'md:col-span-2 lg:col-span-1'
                   )}
+                  onClick={() => openLightbox(item._id)}
                 >
-                  {/* Image Placeholder */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary-gold/20 via-primary-black to-primary-black">
-                    {/* Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-primary-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-300" />
-                    
-                    {/* Content */}
-                    <div className="absolute bottom-0 left-0 right-0 p-6 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                      <div className="space-y-2">
-                        <div className="text-xs font-semibold text-primary-gold uppercase tracking-wider">
-                          {item.category}
+                  <GlassPanel 
+                    className={cn(
+                      'relative overflow-hidden rounded-2xl transition-all duration-500',
+                      'hover:shadow-gold-glow-lg hover:-translate-y-2',
+                      item.aspect === 'portrait' ? 'aspect-[3/4]' : 
+                      item.aspect === 'square' ? 'aspect-square' : 'aspect-video'
+                    )}
+                  >
+                    {/* Media Content */}
+                    <div className="absolute inset-0">
+                      {item.mimeType.startsWith('video/') ? (
+                        <video
+                          src={item.mediaUrl}
+                          className="w-full h-full object-cover"
+                          muted
+                          loop
+                          onMouseEnter={(e) => e.currentTarget.play()}
+                          onMouseLeave={(e) => e.currentTarget.pause()}
+                        />
+                      ) : (
+                        <img
+                          src={item.thumbnailUrl || item.mediaUrl}
+                          alt={item.title}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                      
+                      {/* Overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-primary-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-300" />
+                      
+                      {/* Content */}
+                      <div className="absolute bottom-0 left-0 right-0 p-6 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                        <div className="space-y-2">
+                          <div className="text-xs font-semibold text-primary-gold uppercase tracking-wider">
+                            {item.category.replace('-', ' ')}
+                          </div>
+                          <h3 className="text-lg font-bold text-white group-hover:text-primary-gold transition-colors duration-300">
+                            {item.title}
+                          </h3>
+                          <p className="text-sm text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            {item.description}
+                          </p>
                         </div>
-                        <h3 className="text-lg font-bold text-white group-hover:text-primary-gold transition-colors duration-300">
-                          {item.title}
-                        </h3>
-                        <p className="text-sm text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                          {item.description}
-                        </p>
                       </div>
+
+                      {/* Hover Effect */}
+                      <div className="absolute inset-0 bg-primary-gold/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     </div>
 
-                    {/* Hover Effect */}
-                    <div className="absolute inset-0 bg-primary-gold/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  </div>
-
-                  {/* Film grain */}
-                  <div className="absolute inset-0 film-grain opacity-20" />
-                </GlassPanel>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </motion.div>
+                    {/* Film grain */}
+                    <div className="absolute inset-0 film-grain opacity-20" />
+                  </GlassPanel>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </motion.div>
+        )}
 
         {/* View More Button */}
         <motion.div
@@ -213,20 +291,22 @@ export function GallerySection() {
           viewport={{ once: true }}
           className="text-center mt-16"
         >
-          <motion.button
-            suppressHydrationWarning
-            className={cn(
-              'px-8 py-4 text-lg font-semibold rounded-xl',
-              'bg-gradient-gold text-primary-black',
-              'hover:shadow-gold-glow-lg focus:shadow-gold-glow-lg',
-              'focus:outline-none focus:ring-2 focus:ring-primary-gold focus:ring-offset-2 focus:ring-offset-primary-black',
-              'transition-all duration-300'
-            )}
-            whileHover={{ scale: 1.05, y: -2 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            View Full Gallery
-          </motion.button>
+          <Link href="/gallery">
+            <motion.button
+              suppressHydrationWarning
+              className={cn(
+                'px-8 py-4 text-lg font-semibold rounded-xl',
+                'bg-gradient-gold text-primary-black',
+                'hover:shadow-gold-glow-lg focus:shadow-gold-glow-lg',
+                'focus:outline-none focus:ring-2 focus:ring-primary-gold focus:ring-offset-2 focus:ring-offset-primary-black',
+                'transition-all duration-300'
+              )}
+              whileHover={{ scale: 1.05, y: -2 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              View Full Gallery
+            </motion.button>
+          </Link>
         </motion.div>
       </div>
 
@@ -253,14 +333,30 @@ export function GallerySection() {
               onClick={(e) => e.stopPropagation()}
             >
               <GlassPanel className="relative overflow-hidden rounded-2xl">
-                {/* Image */}
-                <div className="aspect-video bg-gradient-to-br from-primary-gold/20 via-primary-black to-primary-black flex items-center justify-center">
-                  <div className="text-center text-white">
-                    <h3 className="text-2xl font-bold mb-2">{selectedItem.title}</h3>
-                    <p className="text-gray-300">{selectedItem.description}</p>
-                    <div className="mt-4 text-sm text-primary-gold uppercase tracking-wider">
-                      {selectedItem.category}
+                {/* Media Content */}
+                <div className="relative">
+                  {selectedItem.mimeType.startsWith('video/') ? (
+                    <video
+                      src={selectedItem.mediaUrl}
+                      className="w-full h-auto max-h-[80vh] object-contain"
+                      controls
+                      autoPlay
+                    />
+                  ) : (
+                    <img
+                      src={selectedItem.mediaUrl}
+                      alt={selectedItem.title}
+                      className="w-full h-auto max-h-[80vh] object-contain"
+                    />
+                  )}
+                  
+                  {/* Info Overlay */}
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6">
+                    <div className="text-sm text-primary-gold uppercase tracking-wider mb-2">
+                      {selectedItem.category.replace('-', ' ')}
                     </div>
+                    <h3 className="text-2xl font-bold text-white mb-2">{selectedItem.title}</h3>
+                    <p className="text-gray-300">{selectedItem.description}</p>
                   </div>
                 </div>
 

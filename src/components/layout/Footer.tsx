@@ -274,8 +274,19 @@ export function Footer() {
               className="pt-8 border-t border-white/10"
             >
               <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-                <div className="text-sm text-gray-400 dark:text-gray-400 light:text-gray-600">
-                  © 2024 GLITZFUSION Academy. All rights reserved.
+                <div className="text-sm text-gray-400 dark:text-gray-400 light:text-gray-600 text-center">
+                  <div>© 2024 GLITZFUSION Academy. All rights reserved.</div>
+                  <div className="mt-1">
+                    Powered by{' '}
+                    <a
+                      href="https://orincore.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary-gold hover:text-primary-gold-light transition-colors"
+                    >
+                      ORINCORE Technologies
+                    </a>
+                  </div>
                 </div>
                 <div className="flex space-x-6 text-sm">
                   <Link 
