@@ -5,13 +5,7 @@ import { motion } from 'framer-motion'
 import { Instagram, Facebook, Twitter, Youtube, Mail, Phone, MapPin } from 'lucide-react'
 import { GlassPanel } from '@/components/ui/GlassPanel'
 import { cn } from '@/lib/utils'
-
-const socialLinks = [
-  { name: 'Instagram', href: '#', icon: Instagram },
-  { name: 'Facebook', href: '#', icon: Facebook },
-  { name: 'Twitter', href: '#', icon: Twitter },
-  { name: 'YouTube', href: '#', icon: Youtube },
-]
+import { useAbout } from '@/hooks/useAbout'
 
 const quickLinks = [
   { name: 'About Us', href: '/about' },
@@ -31,6 +25,36 @@ const courseLinks = [
 ]
 
 export function Footer() {
+  const { content, loading } = useAbout()
+
+  // Create dynamic social links from database content
+  const socialLinks = [
+    { 
+      name: 'Instagram', 
+      href: content.socialInstagram || '#', 
+      icon: Instagram,
+      show: !!content.socialInstagram 
+    },
+    { 
+      name: 'Facebook', 
+      href: content.socialFacebook || '#', 
+      icon: Facebook,
+      show: !!content.socialFacebook 
+    },
+    { 
+      name: 'Twitter', 
+      href: content.socialTwitter || '#', 
+      icon: Twitter,
+      show: !!content.socialTwitter 
+    },
+    { 
+      name: 'YouTube', 
+      href: content.socialYoutube || '#', 
+      icon: Youtube,
+      show: !!content.socialYoutube 
+    },
+  ].filter(link => link.show) // Only show links that have URLs
+
   return (
     <footer className="relative mt-20">
       {/* Curved top border */}
@@ -63,7 +87,7 @@ export function Footer() {
                 >
                   <Link href="/" className="inline-block mb-4">
                     <div className="text-2xl font-display font-bold text-gradient-gold">
-                      GLITZ FUSION
+                      GLITZFUSION
                     </div>
                   </Link>
                   <p className="text-sm text-gray-300 dark:text-gray-300 light:text-gray-700 mb-6 leading-relaxed">
@@ -74,18 +98,34 @@ export function Footer() {
                   
                   {/* Contact Info */}
                   <div className="space-y-3">
-                    <div className="flex items-center space-x-3 text-sm">
-                      <Mail className="w-4 h-4 text-primary-gold" />
-                      <span>info@glitzfusion.com</span>
-                    </div>
-                    <div className="flex items-center space-x-3 text-sm">
-                      <Phone className="w-4 h-4 text-primary-gold" />
-                      <span>+1 (555) 123-4567</span>
-                    </div>
-                    <div className="flex items-center space-x-3 text-sm">
-                      <MapPin className="w-4 h-4 text-primary-gold" />
-                      <span>123 Creative Arts Blvd, Los Angeles, CA</span>
-                    </div>
+                    {content.contactEmail && (
+                      <div className="flex items-center space-x-3 text-sm">
+                        <Mail className="w-4 h-4 text-primary-gold" />
+                        <a 
+                          href={`mailto:${content.contactEmail}`}
+                          className="hover:text-primary-gold transition-colors"
+                        >
+                          {content.contactEmail}
+                        </a>
+                      </div>
+                    )}
+                    {content.contactPhone && (
+                      <div className="flex items-center space-x-3 text-sm">
+                        <Phone className="w-4 h-4 text-primary-gold" />
+                        <a 
+                          href={`tel:${content.contactPhone}`}
+                          className="hover:text-primary-gold transition-colors"
+                        >
+                          {content.contactPhone}
+                        </a>
+                      </div>
+                    )}
+                    {content.contactAddress && (
+                      <div className="flex items-center space-x-3 text-sm">
+                        <MapPin className="w-4 h-4 text-primary-gold" />
+                        <span>{content.contactAddress}</span>
+                      </div>
+                    )}
                   </div>
                 </motion.div>
               </div>
@@ -170,17 +210,19 @@ export function Footer() {
                         <motion.a
                           key={social.name}
                           href={social.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className={cn(
-                            'p-2 rounded-lg transition-colors duration-200',
-                            'hover:bg-primary-gold/10 focus:bg-primary-gold/10',
-                            'focus:outline-none focus:ring-2 focus:ring-primary-gold focus:ring-offset-2 focus:ring-offset-transparent',
-                            'touch-target'
+                            'flex items-center justify-center w-10 h-10 rounded-lg transition-all duration-200',
+                            'hover:bg-primary-gold/20 hover:text-primary-gold',
+                            'focus:outline-none focus:bg-primary-gold/20 focus:text-primary-gold',
+                            'text-gray-300 hover:scale-105 active:scale-95'
                           )}
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           aria-label={`Follow us on ${social.name}`}
                         >
-                          <Icon className="w-5 h-5 text-primary-gold" />
+                          <Icon className="w-5 h-5" />
                         </motion.a>
                       )
                     })}
@@ -233,7 +275,7 @@ export function Footer() {
             >
               <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
                 <div className="text-sm text-gray-400 dark:text-gray-400 light:text-gray-600">
-                  © 2024 Glitz Fusion Academy. All rights reserved.
+                  © 2024 GLITZFUSION Academy. All rights reserved.
                 </div>
                 <div className="flex space-x-6 text-sm">
                   <Link 

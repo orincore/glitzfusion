@@ -2,8 +2,29 @@
 
 import { motion } from 'framer-motion';
 import { fadeIn, staggerContainer } from '@/lib/utils';
+import { useAbout } from '@/hooks/useAbout';
+import { Loader2 } from 'lucide-react';
 
 export function AboutHero() {
+  const { content, loading } = useAbout();
+
+  // Show loading state
+  if (loading) {
+    return (
+      <section className="relative py-20 md:py-32 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary-dark via-black to-primary-dark/80 -z-10" />
+        <div className="container-custom relative z-10">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="flex items-center space-x-2 text-primary-gold">
+              <Loader2 className="w-6 h-6 animate-spin" />
+              <span>Loading hero content...</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="relative py-20 md:py-32 overflow-hidden">
       {/* Background gradient */}
@@ -48,28 +69,34 @@ export function AboutHero() {
             variants={fadeIn}
             className="inline-block px-4 py-2 mb-6 text-sm font-medium tracking-wider text-primary-gold uppercase rounded-full bg-primary-gold/10 backdrop-blur-sm"
           >
-            Our Story
+            {content.heroSubtitle || 'Our Story'}
           </motion.span>
           
           <motion.h1
             variants={fadeIn}
             className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6"
           >
-            Where{' '}
-            <span className="bg-gradient-to-r from-primary-gold to-amber-300 bg-clip-text text-transparent">
-              Talent
-            </span>{' '}
-            Meets{' '}
-            <span className="bg-gradient-to-r from-primary-gold to-amber-300 bg-clip-text text-transparent">
-              Opportunity
-            </span>
+            {content.heroTitle ? (
+              content.heroTitle
+            ) : (
+              <>
+                Where{' '}
+                <span className="bg-gradient-to-r from-primary-gold to-amber-300 bg-clip-text text-transparent">
+                  Talent
+                </span>{' '}
+                Meets{' '}
+                <span className="bg-gradient-to-r from-primary-gold to-amber-300 bg-clip-text text-transparent">
+                  Opportunity
+                </span>
+              </>
+            )}
           </motion.h1>
           
           <motion.p
             variants={fadeIn}
             className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto"
           >
-            At Glitz Fusion, we believe in the transformative power of performing arts. Our mission is to nurture creativity, build confidence, and launch successful careers in the entertainment industry.
+            {content.heroDescription || 'At Glitz Fusion, we believe in the transformative power of performing arts. Our mission is to nurture creativity, build confidence, and launch successful careers in the entertainment industry.'}
           </motion.p>
           
           <motion.div 
@@ -77,10 +104,10 @@ export function AboutHero() {
             className="mt-12 flex flex-col sm:flex-row gap-4 justify-center"
           >
             <button className="px-8 py-4 bg-primary-gold hover:bg-amber-400 text-primary-dark font-semibold rounded-lg transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary-gold focus:ring-offset-2 focus:ring-offset-primary-dark">
-              Join Our Community
+              {content.heroButtonPrimary || 'Join Our Community'}
             </button>
             <button className="px-8 py-4 border-2 border-primary-gold text-white hover:bg-primary-gold/10 font-semibold rounded-lg transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary-gold focus:ring-offset-2 focus:ring-offset-primary-dark">
-              Watch Our Story
+              {content.heroButtonSecondary || 'Watch Our Story'}
             </button>
           </motion.div>
         </motion.div>

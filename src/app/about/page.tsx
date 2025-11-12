@@ -7,8 +7,8 @@ import { Testimonials } from '@/components/sections/Testimonials';
 import { CTA } from '@/components/sections/CTA';
 
 export const metadata: Metadata = {
-  title: 'About Us | Glitz Fusion',
-  description: 'Discover the passion and expertise behind Glitz Fusion. Learn about our mission, values, and the talented team that makes it all possible.',
+  title: 'About Us | GLITZFUSION',
+  description: 'Discover the passion and expertise behind GLITZFUSION. Learn about our mission, values, and the talented team that makes it all possible.',
 };
 
 export default function AboutPage() {

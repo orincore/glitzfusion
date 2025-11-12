@@ -1,10 +1,9 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion'
 import { ArrowRight, Play } from 'lucide-react'
 import { GlassPanel } from '@/components/ui/GlassPanel'
-import { SparklesBackground } from '@/components/ui/Sparkles'
 import { cn, fadeInUp, staggerContainer } from '@/lib/utils'
 
 export function Hero() {
@@ -23,90 +22,57 @@ export function Hero() {
     setMounted(true);
   }, [prefersReducedMotion])
 
+  const sparkles = useMemo(() => {
+    if (prefersReducedMotion) return [] as Array<never>
+
+    return Array.from({ length: 28 }).map((_, index) => {
+      const size = Math.random() * 6 + 4 // 4px - 10px
+      return {
+        id: `sparkle-${index}`,
+        size,
+        left: Math.random() * 100,
+        top: Math.random() * 100,
+        duration: Math.random() * 6 + 8, // 8s - 14s
+        delay: Math.random() * 4,
+        offset: Math.random() * 30 + 10
+      }
+    })
+  }, [prefersReducedMotion])
+
   return (
     <section 
       ref={containerRef}
-      className="relative h-screen flex items-center justify-center overflow-hidden w-full"
+      className="relative h-screen flex items-center justify-center w-full bg-transparent"
     >
-      {/* Background Container */}
-      <div className="absolute inset-0 z-0 overflow-hidden">
-        {/* Base gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary-black via-primary-black/90 to-primary-black/80" />
-        
-        {/* Sparkles Background */}
-        <div className="absolute inset-0 pointer-events-none">
-          <SparklesBackground 
-            count={35} 
-            color="#FFFFFF" 
-            size={8}
-            className="opacity-70"
-          />
+      {!prefersReducedMotion && (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
+          {sparkles.map((sparkle) => (
+            <motion.span
+              key={sparkle.id}
+              className="absolute rounded-full bg-primary-gold/70 shadow-[0_0_20px_rgba(212,175,55,0.45)]"
+              style={{
+                width: sparkle.size,
+                height: sparkle.size,
+                left: `${sparkle.left}%`,
+                top: `${sparkle.top}%`,
+                filter: 'blur(0.5px)'
+              }}
+              initial={{ opacity: 0, scale: 0.3 }}
+              animate={{
+                opacity: [0, 0.8, 0],
+                scale: [0.6, 1.1, 0.6],
+                y: [0, -sparkle.offset, 0]
+              }}
+              transition={{
+                duration: sparkle.duration,
+                delay: sparkle.delay,
+                repeat: Infinity,
+                ease: 'easeInOut'
+              }}
+            />
+          ))}
         </div>
-        
-        {/* Animated radial washes - Optimized */}
-        {mounted && !prefersReducedMotion && (
-          <>
-            <motion.div
-              className="absolute -top-1/2 left-1/2 h-[100vw] w-[100vw] -translate-x-1/2 rounded-full bg-gradient-to-br from-primary-gold/20 via-primary-gold/5 to-transparent opacity-30 mix-blend-screen"
-              animate={{ 
-                rotate: 360
-              }}
-              transition={{ 
-                duration: 60,
-                ease: 'linear',
-                repeat: Infinity,
-                repeatType: 'loop'
-              }}
-              style={{ zIndex: 1 }}
-            />
-            <motion.div
-              className="absolute -bottom-1/3 left-[-20%] h-[80vw] w-[80vw] rounded-full bg-gradient-to-tr from-primary-gold/15 via-transparent to-transparent opacity-25 mix-blend-screen"
-              animate={{ 
-                rotate: -360
-              }}
-              transition={{ 
-                duration: 80,
-                ease: 'linear',
-                repeat: Infinity,
-                repeatType: 'loop'
-              }}
-              style={{ zIndex: 1 }}
-            />
-          </>
-        )}
-        
-        {/* SVG Background */}
-        <motion.div 
-          className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat"
-          style={{ 
-            y,
-            opacity,
-            backgroundImage: `url('data:image/svg+xml,${encodeURIComponent(`
-              <svg width="1920" height="1080" viewBox="0 0 1920 1080" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <radialGradient id="spotlight" cx="50%" cy="30%" r="60%">
-                    <stop offset="0%" style="stop-color:rgba(212,175,55,0.3);stop-opacity:1" />
-                    <stop offset="50%" style="stop-color:rgba(212,175,55,0.1);stop-opacity:1" />
-                    <stop offset="100%" style="stop-color:rgba(10,10,10,1);stop-opacity:1" />
-                  </radialGradient>
-                  <pattern id="grain" patternUnits="userSpaceOnUse" width="4" height="4">
-                    <circle cx="2" cy="2" r="0.5" fill="rgba(255,255,255,0.03)"/>
-                  </pattern>
-                </defs>
-                <rect width="1920" height="1080" fill="url(#spotlight)"/>
-                <rect width="1920" height="1080" fill="url(#grain)" opacity="0.1"/>
-              </svg>
-            `)})`,
-            zIndex: 2
-          }}
-        />
-        
-        {/* Dark overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-primary-black/50 via-primary-black/30 to-primary-black/90 z-10" />
-        
-        {/* Spotlight Animation */}
-        <div className="absolute inset-0 spotlight-container z-5" />
-      </div>
+      )}
 
       {/* Main Content */}
       <div className="container-custom relative z-20 flex items-center justify-center min-h-screen">
@@ -119,7 +85,7 @@ export function Hero() {
           {/* Main Heading */}
           <motion.div variants={fadeInUp} className="mb-8">
             <motion.h1 
-              className="font-display font-bold leading-none mb-4 text-5xl md:text-7xl lg:text-8xl"
+              className="font-display font-bold leading-none mb-4 text-5xl md:text-7xl lg:text-8xl pt-16 md:mt-24"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ 
@@ -127,9 +93,9 @@ export function Hero() {
                 ease: [0.25, 0.46, 0.45, 0.94],
                 delay: 0.2 
               }}
+              style={{ paddingTop: '6rem' }}
             >
-              <span className="block text-gradient-gold">GLITZ</span>
-              <span className="block text-gradient-gold">FUSION</span>
+              <span className="inline-block text-gradient-gold">GLITZFUSION</span>
             </motion.h1>
             
             <motion.div
@@ -220,7 +186,7 @@ export function Hero() {
                 
                 {/* Clickable overlay for better UX */}
                 <button 
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer rounded-[inherit]" 
                   aria-label="Watch Our Story"
                 />
               </div>

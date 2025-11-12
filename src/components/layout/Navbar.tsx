@@ -53,6 +53,7 @@ export function Navbar() {
           )}
           blur="2xl"
           glow={isScrolled}
+          border={false}
         >
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary-gold/15 via-transparent to-primary-gold/15 opacity-70" />
           <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-primary-gold/50 to-transparent" />
@@ -72,7 +73,7 @@ export function Navbar() {
                   <div className="absolute inset-0 rounded-full bg-primary-gold/35 blur-xl opacity-50 transition-opacity duration-300 group-hover:opacity-80" />
                   <Image
                     src={LogoImg}
-                    alt="Glitz Fusion"
+                    alt="GLITZFUSION"
                     width={200}
                     height={60}
                     priority

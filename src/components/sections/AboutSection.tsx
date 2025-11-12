@@ -2,11 +2,21 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Award, Users, Target, Zap, Volume2, VolumeX, Pause, Play } from 'lucide-react'
+import { Award, Users, Target, Zap, Volume2, VolumeX, Pause, Play, Loader2 } from 'lucide-react'
 import { GlassPanel } from '@/components/ui/GlassPanel'
 import { cn, fadeInUp, staggerContainer } from '@/lib/utils'
+import { useAbout } from '@/hooks/useAbout'
 
-const features = [
+// Icon mapping for dynamic icons
+const iconMap: Record<string, any> = {
+  Award,
+  Users,
+  Target,
+  Zap
+}
+
+// Default features as fallback
+const defaultFeatures = [
   {
     icon: Award,
     title: 'Industry Excellence',
@@ -30,10 +40,36 @@ const features = [
 ]
 
 export function AboutSection() {
+  const { content, loading } = useAbout()
   const videoRef = useRef<HTMLVideoElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
   const [userPaused, setUserPaused] = useState(false)
+
+
+  // Create features array from dynamic content
+  const features = [
+    {
+      icon: iconMap[content.feature1Icon || 'Award'] || Award,
+      title: content.feature1Title || defaultFeatures[0].title,
+      description: content.feature1Description || defaultFeatures[0].description
+    },
+    {
+      icon: iconMap[content.feature2Icon || 'Users'] || Users,
+      title: content.feature2Title || defaultFeatures[1].title,
+      description: content.feature2Description || defaultFeatures[1].description
+    },
+    {
+      icon: iconMap[content.feature3Icon || 'Target'] || Target,
+      title: content.feature3Title || defaultFeatures[2].title,
+      description: content.feature3Description || defaultFeatures[2].description
+    },
+    {
+      icon: iconMap[content.feature4Icon || 'Zap'] || Zap,
+      title: content.feature4Title || defaultFeatures[3].title,
+      description: content.feature4Description || defaultFeatures[3].description
+    }
+  ]
 
   const playVideo = useCallback(async (preferUnmuted = true) => {
     const video = videoRef.current
@@ -127,6 +163,22 @@ export function AboutSection() {
     video.muted = isMuted
   }, [isMuted])
 
+  // Show loading state
+  if (loading) {
+    return (
+      <section className="py-20 relative">
+        <div className="container-custom">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="flex items-center space-x-2 text-primary-gold">
+              <Loader2 className="w-6 h-6 animate-spin" />
+              <span>Loading about content...</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
   return (
     <section className="py-20 relative">
       <div className="container-custom">
@@ -142,25 +194,21 @@ export function AboutSection() {
               variants={fadeInUp}
               className="text-4xl md:text-5xl lg:text-6xl font-display font-bold text-gradient-gold mb-6"
             >
-              About Glitz Fusion
+              {content.aboutTitle || 'About Glitz Fusion'}
             </motion.h2>
             
             <motion.p 
               variants={fadeInUp}
               className="text-lg md:text-xl text-gray-300 leading-relaxed mb-8"
             >
-              For over a decade, Glitz Fusion has been the premier destination for aspiring artists 
-              and creative professionals. Our academy combines traditional techniques with modern 
-              innovation to create a learning environment where talent flourishes.
+              {content.aboutDescription1 || 'For over a decade, Glitz Fusion has been the premier destination for aspiring artists and creative professionals. Our academy combines traditional techniques with modern innovation to create a learning environment where talent flourishes.'}
             </motion.p>
 
             <motion.p 
               variants={fadeInUp}
               className="text-base md:text-lg text-gray-400 leading-relaxed mb-12"
             >
-              We believe that every individual has a unique creative voice waiting to be discovered. 
-              Our mission is to provide the tools, guidance, and opportunities needed to transform 
-              passion into professional success.
+              {content.aboutDescription2 || 'We believe that every individual has a unique creative voice waiting to be discovered. Our mission is to provide the tools, guidance, and opportunities needed to transform passion into professional success.'}
             </motion.p>
 
             {/* Features Grid */}
@@ -212,7 +260,7 @@ export function AboutSection() {
               <video
                 ref={videoRef}
                 className="absolute inset-0 h-full w-full object-cover"
-                src="/Video assets/Video1.mp4"
+                src={content.aboutVideoUrl || '/Video assets/Video1.mp4'}
                 loop
                 muted={isMuted}
                 playsInline
@@ -279,8 +327,8 @@ export function AboutSection() {
             >
               <GlassPanel className="p-4 rounded-xl">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-gradient-gold">10+</div>
-                  <div className="text-xs text-gray-300">Years Experience</div>
+                  <div className="text-2xl font-bold text-gradient-gold">{content.stat1Value || '10+'}</div>
+                  <div className="text-xs text-gray-300">{content.stat1Label || 'Years Experience'}</div>
                 </div>
               </GlassPanel>
             </motion.div>
@@ -294,8 +342,8 @@ export function AboutSection() {
             >
               <GlassPanel className="p-4 rounded-xl">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-gradient-gold">500+</div>
-                  <div className="text-xs text-gray-300">Success Stories</div>
+                  <div className="text-2xl font-bold text-gradient-gold">{content.stat2Value || '500+'}</div>
+                  <div className="text-xs text-gray-300">{content.stat2Label || 'Success Stories'}</div>
                 </div>
               </GlassPanel>
             </motion.div>
@@ -312,10 +360,10 @@ export function AboutSection() {
         >
           <GlassPanel className="p-8 rounded-2xl max-w-4xl mx-auto">
             <h3 className="text-2xl md:text-3xl font-bold text-gradient-gold mb-4">
-              Ready to Begin Your Creative Journey?
+              {content.ctaTitle || 'Ready to Begin Your Creative Journey?'}
             </h3>
             <p className="text-lg text-gray-300 mb-8 leading-relaxed">
-              Join hundreds of successful graduates who have transformed their passion into thriving careers.
+              {content.ctaDescription || 'Join hundreds of successful graduates who have transformed their passion into thriving careers.'}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <motion.button
@@ -329,7 +377,7 @@ export function AboutSection() {
                 whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.95 }}
               >
-                Apply Now
+                {content.ctaButtonPrimary || 'Apply Now'}
               </motion.button>
               <motion.button
                 className={cn(
@@ -342,7 +390,7 @@ export function AboutSection() {
                 whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.95 }}
               >
-                Schedule Tour
+                {content.ctaButtonSecondary || 'Schedule Tour'}
               </motion.button>
             </div>
           </GlassPanel>

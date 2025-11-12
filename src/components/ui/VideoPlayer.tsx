@@ -63,6 +63,14 @@ export function VideoPlayer({
     const video = videoRef.current;
     if (!video) return;
 
+    setIsLoading(true);
+    setHasError(false);
+    setIsPlaying(false);
+
+    const handleCanPlay = () => {
+      setIsLoading(false);
+    };
+
     const handleLoadedData = () => {
       setIsLoading(false);
       setHasError(false);
@@ -97,12 +105,15 @@ export function VideoPlayer({
     const handleEnded = () => !loop && setIsPlaying(false);
 
     video.addEventListener('loadeddata', handleLoadedData);
+    video.addEventListener('canplay', handleCanPlay);
     video.addEventListener('error', handleError);
     video.addEventListener('ended', handleEnded);
+    video.load();
 
     // Cleanup
     return () => {
       video.removeEventListener('loadeddata', handleLoadedData);
+      video.removeEventListener('canplay', handleCanPlay);
       video.removeEventListener('error', handleError);
       video.removeEventListener('ended', handleEnded);
       
@@ -112,7 +123,7 @@ export function VideoPlayer({
       }
       video.currentTime = 0;
     };
-  }, [src, autoPlay, loop]);
+  }, [src, autoPlay, loop, muted]);
 
   // Show error state if video fails to load
   if (hasError) {
@@ -168,6 +179,7 @@ export function VideoPlayer({
         loop={loop}
         onClick={togglePlay}
         preload="auto"
+        crossOrigin="anonymous"
         onError={(e) => {
           console.error('Video element error:', e);
           setHasError(true);

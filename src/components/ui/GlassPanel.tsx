@@ -9,6 +9,7 @@ interface GlassPanelProps extends HTMLMotionProps<'div'> {
   blur?: 'sm' | 'md' | 'lg' | 'xl' | '2xl'
   border?: boolean
   glow?: boolean
+  highlight?: boolean
   children: React.ReactNode
 }
 
@@ -18,11 +19,12 @@ const GlassPanel = forwardRef<HTMLDivElement, GlassPanelProps>(
     blur = 'xl', 
     border = true, 
     glow = false,
+    highlight = true,
     className,
     children,
     ...props 
   }, ref) => {
-    const baseClasses = 'relative overflow-hidden'
+    const baseClasses = 'relative overflow-hidden rounded-2xl'
     
     const variantClasses = {
       default: 'bg-glass-dark',
@@ -39,7 +41,7 @@ const GlassPanel = forwardRef<HTMLDivElement, GlassPanelProps>(
     }
     
     const borderClasses = border ? 'border border-white/10 dark:border-white/10 light:border-black/10' : ''
-    const glowClasses = glow ? 'shadow-gold-glow hover:shadow-gold-glow-lg transition-shadow duration-300' : ''
+    const glowClasses = glow ? 'shadow-gold-glow hover:shadow-gold-glow-lg transition-all duration-500' : ''
     
     return (
       <motion.div
@@ -56,18 +58,20 @@ const GlassPanel = forwardRef<HTMLDivElement, GlassPanelProps>(
       >
         {children}
         
-        {/* Film grain texture overlay */}
-        <div className="absolute inset-0 opacity-[0.02] pointer-events-none">
-          <div 
-            className="w-full h-full"
-            style={{
-              backgroundImage: `
-                radial-gradient(circle, transparent 1px, rgba(255, 255, 255, 0.15) 1px)
-              `,
-              backgroundSize: '4px 4px'
-            }}
-          />
-        </div>
+        {highlight && (
+          <div className="pointer-events-none absolute inset-0 rounded-[inherit]">
+            <div className="absolute inset-0 rounded-[inherit] bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.18),transparent_60%)] opacity-40" />
+            <div className="absolute inset-0 rounded-[inherit] bg-[radial-gradient(circle_at_bottom,rgba(253,215,146,0.12),transparent_70%)] mix-blend-screen" />
+            <div className="absolute -inset-px rounded-[inherit] bg-[conic-gradient(from_140deg,rgba(255,255,255,0.4)_0deg,transparent_120deg,rgba(255,215,128,0.35)_240deg,transparent_320deg)] opacity-0 transition-opacity duration-500 ease-out group-hover/glass:opacity-60" />
+            {border && (
+              <div className="absolute inset-[1px] rounded-[inherit] border border-white/8 opacity-50 mix-blend-screen" />
+            )}
+            <div className="absolute inset-0 opacity-[0.025]" style={{
+              backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.2) 1px, transparent 1px)',
+              backgroundSize: '6px 6px'
+            }} />
+          </div>
+        )}
       </motion.div>
     )
   }

@@ -1,5 +1,6 @@
 'use client'
 
+import React from 'react'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -11,22 +12,35 @@ import { cn, fadeInUp, fadeIn, scaleIn, staggerContainer } from '@/lib/utils'
 import type { CourseInfo } from '@/data/courses'
 
 interface CourseDetailContentProps {
-  course: Omit<CourseInfo, 'icon'>
+  course: Omit<CourseInfo, 'icon'> & {
+    heroMedia?: {
+      mediaId: string
+      url: string
+      mediaType: 'image' | 'video'
+      alt?: string
+    }
+    videoUrl?: string
+  }
 }
 
 export function CourseDetailContent({ course }: CourseDetailContentProps) {
-  // Video sources - using local videos from public directory
-  const courseVideo = {
-    // Using the available videos - map course slugs to existing video files
-    acting: '/Video assets/Video1.mp4',
-    dance: '/Video assets/dancing.mp4',
-    // For other courses, use the available videos in a round-robin fashion
-    photography: '/Video assets/dancing.mp4',
-    filmmaking: '/Video assets/Video1.mp4',
-    modeling: '/Video assets/dancing.mp4'
-  }[course.slug] || '/Video assets/Video1.mp4'
+  // Fallback video sources for courses without media
+  const fallbackVideo = {
+    acting: '/Video%20assets/Video1.mp4',
+    dance: '/Video%20assets/dancing.mp4',
+    photography: '/Video%20assets/dancing.mp4',
+    filmmaking: '/Video%20assets/Video1.mp4',
+    modeling: '/Video%20assets/dancing.mp4'
+  }[course.slug] || '/Video%20assets/Video1.mp4'
   
-  const courseImage = `/${course.slug}.jpg`
+  // Priority: heroMedia from database > videoUrl > fallback video
+  const courseVideo = course.heroMedia?.url && course.heroMedia.mediaType === 'video'
+    ? course.heroMedia.url 
+    : course.videoUrl || fallbackVideo
+    
+  const courseImage = course.heroMedia?.url && course.heroMedia.mediaType === 'image'
+    ? course.heroMedia.url 
+    : `/${course.slug}.jpg`
   
   return (
     <section className="py-16 md:py-24">

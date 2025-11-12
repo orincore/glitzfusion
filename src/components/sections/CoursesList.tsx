@@ -2,12 +2,45 @@
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Loader2 } from 'lucide-react';
 import { GlassPanel } from '@/components/ui/GlassPanel';
 import { cn, fadeInUp, staggerContainer } from '@/lib/utils';
-import { courses } from '@/data/courses';
+import { useCourses } from '@/hooks/useCourses';
+import { courses as fallbackCourses } from '@/data/courses';
 
 export default function CoursesList() {
+  const { courses, isLoading, error } = useCourses()
+  
+  // Use API data if available, otherwise fallback to static data
+  const displayCourses = courses.length > 0 ? courses : fallbackCourses
+
+  if (isLoading) {
+    return (
+      <section className="py-20 relative">
+        <div className="container-custom">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary-gold mx-auto mb-4" />
+              <p className="text-gray-300">Loading courses...</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  if (error) {
+    return (
+      <section className="py-20 relative">
+        <div className="container-custom">
+          <div className="text-center text-red-400 mb-8">
+            <p>Error loading courses: {error}</p>
+            <p className="text-sm text-gray-400 mt-2">Showing fallback courses</p>
+          </div>
+        </div>
+      </section>
+    )
+  }
   return (
     <section className="py-20 relative">
       <div className="container-custom">
@@ -19,7 +52,7 @@ export default function CoursesList() {
           viewport={{ once: true, margin: "-50px" }}
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
         >
-          {courses.map((course, index) => {
+          {displayCourses.map((course, index) => {
             const Icon = course.icon
             return (
               <motion.div

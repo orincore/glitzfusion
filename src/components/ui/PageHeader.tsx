@@ -11,7 +11,7 @@ interface PageHeaderProps {
 
 export default function PageHeader({ title, description, className = '' }: PageHeaderProps) {
   return (
-    <div className={`relative py-32 md:py-40 overflow-hidden ${className}`}>
+    <div className={`relative pt-20 md:pt-40 overflow-hidden ${className}`}>
       {/* Background Effects - matching homepage */}
       <div className="absolute inset-0 -z-10">
         {/* Spotlight Background */}
@@ -37,13 +37,13 @@ export default function PageHeader({ title, description, className = '' }: PageH
         >
           <motion.h1 
             variants={fadeInUp}
-            className="text-5xl md:text-6xl lg:text-7xl font-display font-bold text-gradient-gold mb-8 leading-tight"
+            className="text-5xl md:text-6xl lg:text-7xl font-display font-bold text-gradient-gold pb-10 leading-tight"
           >
             {title}
           </motion.h1>
           <motion.p 
             variants={fadeInUp}
-            className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed"
+            className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed mb-2"
           >
             {description}
           </motion.p>
