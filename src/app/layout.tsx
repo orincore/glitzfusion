@@ -4,6 +4,7 @@ import './globals.css'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { Navbar } from '@/components/layout/Navbar'
 import { Footer } from '@/components/layout/Footer'
+import { SparklesContainer } from '@/components/ui/Sparkles'
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -72,15 +73,17 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${playfair.variable} font-sans`}>
+      <body className={`${inter.variable} ${playfair.variable} font-sans antialiased bg-primary-dark text-white min-h-screen w-full`}>
         <ThemeProvider>
-          <div className="relative min-h-screen flex flex-col">
-            <Navbar />
-            <main className="flex-1">
-              {children}
-            </main>
-            <Footer />
-          </div>
+          <SparklesContainer className="min-h-screen" sparklesCount={30}>
+            <div className="relative z-10">
+              <Navbar />
+              <main>
+                {children}
+              </main>
+              <Footer />
+            </div>
+          </SparklesContainer>
         </ThemeProvider>
       </body>
     </html>

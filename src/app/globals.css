@@ -8,15 +8,21 @@
 @layer base {
   * {
     @apply border-gray-200 dark:border-gray-800;
+    box-sizing: border-box;
   }
   
   html {
     scroll-behavior: smooth;
+    @apply m-0 p-0;
+    width: 100%;
+    overflow-x: hidden;
   }
   
   body {
-    @apply font-sans antialiased min-h-screen;
+    @apply font-sans antialiased min-h-screen m-0 p-0;
     @apply selection:bg-primary-gold selection:text-primary-black;
+    width: 100%;
+    overflow-x: hidden;
   }
   
   body {

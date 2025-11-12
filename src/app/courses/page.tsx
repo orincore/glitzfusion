@@ -17,7 +17,7 @@ export default function CoursesPage() {
       </div>
 
       {/* Page Content */}
-      <div className="relative z-10">
+      <div className="relative z-10 pt-20">
         <PageHeader 
           title="Our Courses"
           description="Unleash your creative potential with our expert-led courses designed to help you master the arts."

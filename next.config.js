@@ -10,7 +10,8 @@ const nextConfig = {
     domains: [
       'files.ailey.org',
       'apeirodesign.com',
-      'cdn.prod.website-files.com'
+      'cdn.prod.website-files.com',
+      'images.unsplash.com'
     ],
   },
   compiler: {

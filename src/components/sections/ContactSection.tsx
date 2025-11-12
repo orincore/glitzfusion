@@ -171,7 +171,7 @@ export function ContactSection() {
                       whileTap={{ scale: 0.95 }}
                       suppressHydrationWarning
                     >
-                      <button className="focus:outline-none">
+                      <button className="focus:outline-none" suppressHydrationWarning>
                         Book a Tour →
                       </button>
                     </motion.div>
@@ -301,6 +301,7 @@ export function ContactSection() {
                   <button
                     type="submit"
                     disabled={isSubmitting}
+                    suppressHydrationWarning
                     className={cn(
                       'w-full px-8 py-4 text-lg font-semibold rounded-xl',
                       'bg-gradient-gold text-primary-black',

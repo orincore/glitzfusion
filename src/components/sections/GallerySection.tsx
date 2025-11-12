@@ -214,6 +214,7 @@ export function GallerySection() {
           className="text-center mt-16"
         >
           <motion.button
+            suppressHydrationWarning
             className={cn(
               'px-8 py-4 text-lg font-semibold rounded-xl',
               'bg-gradient-gold text-primary-black',

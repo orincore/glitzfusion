@@ -19,11 +19,13 @@ export default function HomePage() {
       {/* Page Content */}
       <div className="relative z-10">
         <Hero />
-        <CoursesSection />
-        <AboutSection />
-        <GallerySection />
-        <TestimonialsSection />
-        <ContactSection />
+        <div className="pt-20">
+          <CoursesSection />
+          <AboutSection />
+          <GallerySection />
+          <TestimonialsSection />
+          <ContactSection />
+        </div>
       </div>
     </div>
   )
