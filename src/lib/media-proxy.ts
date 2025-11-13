@@ -1,49 +1,38 @@
 /**
- * Utility functions for handling media URLs and CORS proxy
+ * Utility functions for handling media URLs
  */
 
 /**
- * Converts R2 URLs to proxy URLs for development to avoid CORS issues
+ * Converts R2 keys to public R2 URLs
  */
-export function getProxyUrl(cloudflareKey: string, baseUrl?: string): string {
-  const path = `/api/media/proxy/${encodeURIComponent(cloudflareKey)}`
+export function getPublicMediaUrl(cloudflareKey: string): string {
+  const envDomain = process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL
+  const publicR2Domain = (envDomain && envDomain.trim().replace(/\/$/, ''))
 
-  if (baseUrl) {
-    return `${baseUrl.replace(/\/$/, '')}${path}`
-  }
-
-  if (typeof window !== 'undefined') {
-    return path
-  }
-
-  const envBase = process.env.NEXT_PUBLIC_SITE_URL
-    || process.env.NEXT_PUBLIC_BASE_URL
-    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '')
-
-  return envBase ? `${envBase.replace(/\/$/, '')}${path}` : path
+  return `${publicR2Domain}/${cloudflareKey}`
 }
 
 /**
- * Processes gallery items to use proxy URLs
+ * Processes gallery items to use public R2 URLs
  */
 export function processGalleryItemUrls(item: any, baseUrl?: string) {
   return {
     ...item,
-    mediaUrl: item.cloudflareKey ? getProxyUrl(item.cloudflareKey, baseUrl) : item.mediaUrl,
+    mediaUrl: item.cloudflareKey ? getPublicMediaUrl(item.cloudflareKey) : item.mediaUrl,
     thumbnailUrl: item.thumbnailUrl && item.cloudflareKey 
-      ? getProxyUrl(`thumb_${item.cloudflareKey}`, baseUrl) 
+      ? getPublicMediaUrl(`thumb_${item.cloudflareKey}`) 
       : item.thumbnailUrl
   }
 }
 
 /**
- * Processes course media to use proxy URLs
+ * Processes course media to use public R2 URLs
  */
 export function processCourseMediaUrls(media: any, baseUrl?: string) {
   if (!media || !media.cloudflareKey) return media
   
   return {
     ...media,
-    url: getProxyUrl(media.cloudflareKey, baseUrl)
+    url: getPublicMediaUrl(media.cloudflareKey)
   }
 }

@@ -21,12 +21,8 @@ export async function GET(
       )
     }
     
-    // Process item to use proxy URLs for CORS compatibility
-    const baseUrl = request.headers.get('host') 
-      ? `${request.headers.get('x-forwarded-proto') || 'http'}://${request.headers.get('host')}`
-      : undefined
-    
-    const processedItem = processGalleryItemUrls(item.toObject(), baseUrl)
+    // Process item to use public R2 URLs
+    const processedItem = processGalleryItemUrls(item.toObject())
     
     return NextResponse.json(processedItem)
   } catch (error) {

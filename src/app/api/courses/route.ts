@@ -11,11 +11,6 @@ export async function GET(request: NextRequest) {
     await dbConnect()
     const courses = await Course.find({ isActive: true }).sort({ createdAt: -1 })
     
-    // Get base URL for proxy
-    const baseUrl = request.headers.get('host') 
-      ? `${request.headers.get('x-forwarded-proto') || 'http'}://${request.headers.get('host')}`
-      : undefined
-    
     // Populate media data for courses that have heroMedia
     const coursesWithMedia = await Promise.all(
       courses.map(async (course) => {
@@ -24,7 +19,7 @@ export async function GET(request: NextRequest) {
           try {
             const media = await Media.findById(courseData.heroMedia.mediaId)
             if (media) {
-              // Use proxy URL instead of direct R2 URL
+              // Use public R2 URL
               const heroMedia = {
                 mediaId: media._id.toString(),
                 url: media.cloudflareKey,
@@ -33,7 +28,7 @@ export async function GET(request: NextRequest) {
                 cloudflareKey: media.cloudflareKey
               }
               
-              courseData.heroMedia = processCourseMediaUrls(heroMedia, baseUrl)
+              courseData.heroMedia = processCourseMediaUrls(heroMedia)
             }
           } catch (mediaError) {
             console.warn('Failed to populate media for course:', course._id, mediaError)

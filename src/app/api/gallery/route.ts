@@ -35,12 +35,8 @@ export async function GET(request: NextRequest) {
     
     const total = await Gallery.countDocuments(query)
     
-    // Process items to use proxy URLs for CORS compatibility
-    const baseUrl = request.headers.get('host') 
-      ? `${request.headers.get('x-forwarded-proto') || 'http'}://${request.headers.get('host')}`
-      : undefined
-    
-    const processedItems = items.map(item => processGalleryItemUrls(item.toObject(), baseUrl))
+    // Process items to use public R2 URLs
+    const processedItems = items.map(item => processGalleryItemUrls(item.toObject()))
     
     return NextResponse.json({
       items: processedItems,

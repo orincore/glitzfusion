@@ -22,18 +22,13 @@ export async function GET(
       )
     }
 
-    // Get base URL for proxy
-    const baseUrl = request.headers.get('host') 
-      ? `${request.headers.get('x-forwarded-proto') || 'http'}://${request.headers.get('host')}`
-      : undefined
-
     // Populate media data if heroMedia exists
     let courseData = course.toObject()
     if (courseData.heroMedia?.mediaId) {
       try {
         const media = await Media.findById(courseData.heroMedia.mediaId)
         if (media) {
-          // Use proxy URL instead of direct R2 URL
+          // Use public R2 URL
           const heroMedia = {
             mediaId: media._id.toString(),
             url: media.cloudflareKey,
@@ -42,7 +37,7 @@ export async function GET(
             cloudflareKey: media.cloudflareKey
           }
           
-          courseData.heroMedia = processCourseMediaUrls(heroMedia, baseUrl)
+          courseData.heroMedia = processCourseMediaUrls(heroMedia)
         }
       } catch (mediaError) {
         console.warn('Failed to populate media:', mediaError)
