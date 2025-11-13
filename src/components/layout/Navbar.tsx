@@ -40,7 +40,7 @@ export function Navbar() {
     <motion.header
       className={cn(
         'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
-        isScrolled ? 'py-2' : 'py-4'
+        isScrolled ? 'py-1' : 'py-2'
       )}
       initial={{ y: -100 }}
       animate={{ y: 0 }}
@@ -58,7 +58,7 @@ export function Navbar() {
         >
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary-gold/15 via-transparent to-primary-gold/15 opacity-70" />
           <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-primary-gold/50 to-transparent" />
-          <nav className="relative flex items-center justify-between px-6 py-4">
+          <nav className="relative flex items-center justify-between px-8 py-3">
             {/* Logo */}
             <Link 
               href="/" 
@@ -75,10 +75,10 @@ export function Navbar() {
                   <Image
                     src={LogoImg}
                     alt="GLITZFUSION"
-                    width={200}
-                    height={60}
+                    width={240}
+                    height={72}
                     priority
-                    className="relative h-12 w-auto object-contain drop-shadow-[0_8px_20px_rgba(212,175,55,0.45)]"
+                    className="relative h-16 w-auto object-contain drop-shadow-[0_8px_20px_rgba(212,175,55,0.45)]"
                     style={{
                       filter: 'invert(1) saturate(1.2)'
                     }}
@@ -89,7 +89,7 @@ export function Navbar() {
             </Link>
 
             {/* Desktop Navigation */}
-            <div className="hidden lg:flex items-center space-x-8">
+            <div className="hidden lg:flex items-center space-x-6">
               {navigation.map((item) => (
                 <Link
                   key={item.name}
@@ -163,7 +163,7 @@ export function Navbar() {
                 transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
                 className="lg:hidden overflow-hidden border-t border-white/10"
               >
-                <div className="px-6 py-4 space-y-2">
+                <div className="px-8 py-4 space-y-2">
                   {navigation.map((item, index) => (
                     <motion.div
                       key={item.name}

@@ -1,15 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { 
   LayoutDashboard, 
   BookOpen, 
-  Image, 
-  FileText, 
-  Users, 
-  Settings,
   LogOut,
   Menu,
   X,
@@ -19,35 +15,18 @@ import {
   Mail,
   MessageCircle,
   Star,
-  Briefcase,
-  UserCheck
+  Briefcase
 } from 'lucide-react'
+import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 
 interface AdminLayoutProps {
   children: React.ReactNode
 }
 
-export default function AdminLayout({ children }: AdminLayoutProps) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
+function AdminLayoutContent({ children }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const router = useRouter()
+  const { isAuthenticated, isLoading, logout } = useAuth()
   const pathname = usePathname()
-
-  useEffect(() => {
-    const token = localStorage.getItem('admin_token')
-    if (!token && pathname !== '/admin/login') {
-      router.push('/admin/login')
-    } else if (token) {
-      setIsAuthenticated(true)
-    }
-    setIsLoading(false)
-  }, [pathname, router])
-
-  const handleLogout = () => {
-    localStorage.removeItem('admin_token')
-    router.push('/admin/login')
-  }
 
   if (isLoading) {
     return (
@@ -65,6 +44,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     return null
   }
 
+  // Only include sections that actually exist
   const navigation = [
     { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
     { name: 'About', href: '/admin/about', icon: Info },
@@ -73,13 +53,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { name: 'Admissions', href: '/admin/admissions', icon: GraduationCap },
     { name: 'Testimonials', href: '/admin/testimonials', icon: Star },
     { name: 'Careers', href: '/admin/careers', icon: Briefcase },
-    { name: 'Applications', href: '/admin/applications', icon: UserCheck },
     { name: 'Contacts', href: '/admin/contacts', icon: MessageCircle },
     { name: 'Email Settings', href: '/admin/email', icon: Mail },
-    { name: 'Media', href: '/admin/media', icon: Image },
-    { name: 'Content', href: '/admin/content', icon: FileText },
-    { name: 'Users', href: '/admin/users', icon: Users },
-    { name: 'Settings', href: '/admin/settings', icon: Settings },
   ]
 
   return (
@@ -121,7 +96,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           </nav>
           <div className="px-2">
             <button
-              onClick={handleLogout}
+              onClick={logout}
               className="group flex w-full items-center px-2 py-2 text-sm font-medium text-gray-300 rounded-md hover:bg-gray-700 hover:text-white"
             >
               <LogOut className="mr-3 h-5 w-5" />
@@ -159,7 +134,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </nav>
             <div className="px-2 pb-4">
               <button
-                onClick={handleLogout}
+                onClick={logout}
                 className="group flex w-full items-center px-2 py-2 text-sm font-medium text-gray-300 rounded-md hover:bg-gray-700 hover:text-white"
               >
                 <LogOut className="mr-3 h-5 w-5" />
@@ -196,5 +171,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         </main>
       </div>
     </div>
+  )
+}
+
+export default function AdminLayout({ children }: AdminLayoutProps) {
+  return (
+    <AuthProvider>
+      <AdminLayoutContent>{children}</AdminLayoutContent>
+    </AuthProvider>
   )
 }

@@ -8,8 +8,26 @@ import { Testimonials } from '@/components/sections/Testimonials';
 import { CTA } from '@/components/sections/CTA';
 
 export const metadata: Metadata = {
-  title: 'About Us | GLITZFUSION',
-  description: 'Discover the passion and expertise behind GLITZFUSION. Learn about our mission, values, and the talented team that makes it all possible.',
+  title: 'About GLITZFUSION | Badlapur\'s First Media Academy - Our Story & Mission',
+  description: 'Learn about GLITZFUSION - Badlapur\'s pioneering media academy. Founded to bring world-class Acting, Dancing, Photography, Filmmaking & Modeling education to Maharashtra. Meet our expert faculty.',
+  keywords: [
+    'about GLITZFUSION', 'media academy history Badlapur', 'acting school founders Maharashtra',
+    'dance academy team Badlapur', 'photography institute faculty', 'filmmaking school mission',
+    'creative arts education philosophy', 'media training experts Badlapur'
+  ],
+  openGraph: {
+    title: 'About GLITZFUSION - Badlapur\'s Premier Media Academy Story',
+    description: 'Discover the vision behind Badlapur\'s first media academy. Expert faculty, proven methodology, and commitment to nurturing creative talent in Maharashtra.',
+    images: [{
+      url: '/og-about.jpg',
+      width: 1200,
+      height: 630,
+      alt: 'GLITZFUSION Academy founders and faculty team in Badlapur'
+    }]
+  },
+  alternates: {
+    canonical: 'https://glitzfusion.in/about'
+  }
 };
 
 export default function AboutPage() {

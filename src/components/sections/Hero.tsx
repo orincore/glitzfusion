@@ -109,7 +109,7 @@ export function Hero() {
               className="text-xl md:text-2xl lg:text-3xl font-light text-gray-200 max-w-3xl mx-auto leading-relaxed"
               variants={fadeInUp}
             >
-              The Premier Media Academy
+              Badlapur's First Media Academy
             </motion.p>
           </motion.div>
 
@@ -122,7 +122,7 @@ export function Hero() {
             <span className="text-primary-gold font-medium"> Dancing</span>, 
             <span className="text-primary-gold font-medium"> Photography</span>, 
             <span className="text-primary-gold font-medium"> Filmmaking</span>, and 
-            <span className="text-primary-gold font-medium"> Modeling</span> at the premier creative academy.
+            <span className="text-primary-gold font-medium"> Modeling</span> at Badlapur's premier creative academy with industry experts.
           </motion.p>
 
           {/* CTA Buttons */}

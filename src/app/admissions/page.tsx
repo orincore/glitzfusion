@@ -3,8 +3,26 @@ import AdmissionForm from '@/components/sections/AdmissionForm'
 import PageHeader from '@/components/ui/PageHeader'
 
 export const metadata: Metadata = {
-  title: 'Apply for Admission | GLITZFUSION',
-  description: 'Start your creative journey with GLITZFUSION. Apply for our professional courses in Acting, Dancing, Photography, Filmmaking, and Modeling.',
+  title: 'Admissions Open 2025 | Apply to GLITZFUSION Badlapur Media Academy',
+  description: 'Apply now for GLITZFUSION Badlapur - Maharashtra\'s premier media academy. Admissions open for Acting, Dancing, Photography, Filmmaking & Modeling courses. Limited seats available!',
+  keywords: [
+    'admissions open Badlapur media academy', 'apply GLITZFUSION academy', 'media academy admission 2025',
+    'acting school admission Badlapur', 'dance academy enrollment', 'photography course admission',
+    'filmmaking institute application', 'modeling school admission Maharashtra'
+  ],
+  openGraph: {
+    title: 'Admissions Open 2025 | Join GLITZFUSION Badlapur Media Academy',
+    description: 'Secure your seat at Badlapur\'s first media academy. Professional training in Acting, Dancing, Photography, Filmmaking & Modeling. Apply today!',
+    images: [{
+      url: '/og-admissions.jpg',
+      width: 1200,
+      height: 630,
+      alt: 'GLITZFUSION Academy admissions - Students applying for media courses in Badlapur'
+    }]
+  },
+  alternates: {
+    canonical: 'https://glitzfusion.in/admissions'
+  }
 }
 
 export default function AdmissionsPage() {

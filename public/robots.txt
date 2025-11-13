@@ -1,0 +1,59 @@
+# Robots.txt for GLITZFUSION Academy - Badlapur's Premier Media Academy
+
+User-agent: *
+Allow: /
+
+# Important pages for SEO
+Allow: /courses
+Allow: /about
+Allow: /admissions
+Allow: /gallery
+Allow: /testimonials
+Allow: /contact
+Allow: /careers
+
+# Course pages
+Allow: /courses/acting
+Allow: /courses/dance
+Allow: /courses/photography
+Allow: /courses/filmmaking
+Allow: /courses/modeling
+
+# Admin pages - block from search engines
+Disallow: /admin
+Disallow: /api
+
+# Block sensitive files
+Disallow: /*.json$
+Disallow: /private/
+Disallow: /temp/
+
+# Allow important assets
+Allow: /logo/
+Allow: /images/
+Allow: /*.css
+Allow: /*.js
+Allow: /*.png
+Allow: /*.jpg
+Allow: /*.jpeg
+Allow: /*.webp
+Allow: /*.svg
+
+# Sitemap location
+Sitemap: https://glitzfusion.in/sitemap.xml
+
+# Crawl delay for respectful crawling
+Crawl-delay: 1
+
+# Special instructions for major search engines
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 0
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1
+
+User-agent: Slurp
+Allow: /
+Crawl-delay: 2
