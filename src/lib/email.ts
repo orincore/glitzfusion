@@ -81,7 +81,7 @@ class EmailService {
 
       const fromEmail = process.env.SMTP_FROM || 'contact@glitzfusion.in'
       const mailOptions = {
-        from: `"GLITZFUSION" <${fromEmail}>`,
+        from: fromEmail,
         replyTo: 'contact@glitzfusion.in',
         to: options.to,
         subject: options.subject,
@@ -143,7 +143,8 @@ class EmailService {
 // Create singleton instance
 export const emailService = new EmailService()
 
-// Email templates
+// Email templates will be defined below
+
 export const generateAdmissionConfirmationEmail = (data: {
   firstName: string
   lastName: string
@@ -1527,6 +1528,766 @@ ${data.status === 'accepted'
 
 Best regards,
 The GLITZFUSION Admissions Team
+
+GLITZFUSION
+Premier Creative Arts Institute
+www.glitzfusion.in
+    `
+  }
+}
+
+// Contact confirmation email template
+export const generateContactConfirmationEmail = (data: {
+  firstName: string
+  lastName: string
+  subject: string
+  category: string
+  submissionDate: string
+}) => {
+  const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Contact Request Received - GLITZFUSION</title>
+      <style>
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        
+        body {
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          line-height: 1.6;
+          color: #ffffff;
+          background: #0a0a0a;
+          margin: 0;
+          padding: 0;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .email-container {
+          max-width: 600px;
+          margin: 0 auto;
+          background: #0a0a0a;
+          min-height: 100vh;
+        }
+        
+        .header {
+          background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+          padding: 40px 30px;
+          text-align: center;
+          border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+          position: relative;
+        }
+        
+        .header::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: radial-gradient(circle at 50% 50%, rgba(212, 175, 55, 0.1) 0%, transparent 70%);
+          pointer-events: none;
+        }
+        
+        .logo {
+          font-size: 32px;
+          font-weight: 800;
+          background: linear-gradient(135deg, #d4af37 0%, #f4d03f 50%, #d4af37 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          margin-bottom: 8px;
+          position: relative;
+          z-index: 1;
+        }
+        
+        .tagline {
+          color: #a0a0a0;
+          font-size: 16px;
+          position: relative;
+          z-index: 1;
+        }
+        
+        .main-content {
+          padding: 40px 30px;
+        }
+        
+        .glass-panel {
+          background: rgba(255, 255, 255, 0.05);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 16px;
+          padding: 32px;
+          margin-bottom: 24px;
+        }
+        
+        .greeting {
+          font-size: 24px;
+          font-weight: 600;
+          color: #ffffff;
+          margin-bottom: 24px;
+        }
+        
+        .intro-text {
+          font-size: 16px;
+          color: #e5e5e5;
+          line-height: 1.7;
+          margin-bottom: 24px;
+        }
+        
+        .contact-details {
+          background: rgba(212, 175, 55, 0.1);
+          border: 1px solid rgba(212, 175, 55, 0.2);
+          border-radius: 12px;
+          padding: 24px;
+          margin-bottom: 24px;
+        }
+        
+        .details-title {
+          color: #d4af37;
+          font-size: 18px;
+          font-weight: 600;
+          margin-bottom: 16px;
+        }
+        
+        .detail-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          padding: 8px 0;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .detail-row:last-child {
+          border-bottom: none;
+        }
+        
+        .detail-label {
+          color: #a0a0a0;
+          font-weight: 500;
+          min-width: 120px;
+        }
+        
+        .detail-value {
+          color: #ffffff;
+          flex: 1;
+          text-align: right;
+        }
+        
+        .next-steps {
+          background: rgba(34, 197, 94, 0.1);
+          border: 1px solid rgba(34, 197, 94, 0.2);
+          border-radius: 12px;
+          padding: 24px;
+          margin-bottom: 24px;
+        }
+        
+        .next-steps-title {
+          color: #22c55e;
+          font-size: 18px;
+          font-weight: 600;
+          margin-bottom: 16px;
+        }
+        
+        .step {
+          display: flex;
+          align-items: flex-start;
+          margin-bottom: 12px;
+        }
+        
+        .step-number {
+          background: #22c55e;
+          color: #000000;
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 12px;
+          font-weight: 600;
+          margin-right: 12px;
+          flex-shrink: 0;
+        }
+        
+        .step-text {
+          color: #e5e5e5;
+          font-size: 14px;
+          line-height: 1.5;
+        }
+        
+        .footer {
+          background: rgba(255, 255, 255, 0.02);
+          padding: 32px 30px;
+          text-align: center;
+          border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .social-links {
+          margin-bottom: 20px;
+        }
+        
+        .social-link {
+          display: inline-block;
+          margin: 0 12px;
+          color: #d4af37;
+          text-decoration: none;
+          font-size: 14px;
+          transition: color 0.3s ease;
+        }
+        
+        .social-link:hover {
+          color: #f4d03f;
+        }
+        
+        .company-info {
+          color: #a0a0a0;
+          font-size: 14px;
+          line-height: 1.6;
+          margin-bottom: 16px;
+        }
+        
+        .disclaimer {
+          color: #666666;
+          font-size: 12px;
+          line-height: 1.5;
+          border-top: 1px solid rgba(255, 255, 255, 0.1);
+          padding-top: 16px;
+        }
+
+        @media (max-width: 640px) {
+          .email-container {
+            margin: 0;
+            max-width: 100%;
+          }
+          
+          .header, .main-content, .footer {
+            padding-left: 16px;
+            padding-right: 16px;
+          }
+          
+          .glass-panel, .contact-details, .next-steps {
+            padding: 20px;
+          }
+          
+          .logo {
+            font-size: 26px;
+          }
+          
+          .greeting {
+            font-size: 20px;
+          }
+          
+          .detail-row {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+          
+          .detail-value {
+            text-align: left;
+            margin-top: 4px;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="email-container">
+        <div class="header">
+          <div class="logo">GLITZFUSION</div>
+          <div class="tagline">Premier Creative Arts Institute</div>
+        </div>
+        
+        <div class="main-content">
+          <div class="glass-panel">
+            <div class="greeting">Hello ${data.firstName} ${data.lastName}!</div>
+            
+            <div class="intro-text">
+              Thank you for contacting GLITZFUSION! We have successfully received your message and appreciate you reaching out to us.
+            </div>
+            
+            <div class="contact-details">
+              <div class="details-title">Your Contact Request</div>
+              <div class="detail-row">
+                <span class="detail-label">Subject:</span>
+                <span class="detail-value">${data.subject}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Category:</span>
+                <span class="detail-value">${data.category.charAt(0).toUpperCase() + data.category.slice(1)}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Submitted:</span>
+                <span class="detail-value">${data.submissionDate}</span>
+              </div>
+            </div>
+            
+            <div class="next-steps">
+              <div class="next-steps-title">What Happens Next?</div>
+              <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-text">Our team will review your message within 24 hours</div>
+              </div>
+              <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-text">We'll research and prepare a comprehensive response</div>
+              </div>
+              <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-text">You'll receive our response within 2-3 business days</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="footer">
+          <div class="social-links">
+            <a href="https://instagram.com/glitzfusion" class="social-link">Instagram</a>
+            <a href="https://facebook.com/glitzfusion" class="social-link">Facebook</a>
+            <a href="https://youtube.com/@glitzfusion" class="social-link">YouTube</a>
+          </div>
+          
+          <div class="company-info">
+            <strong style="color: #d4af37;">GLITZFUSION</strong><br>
+            Premier Creative Arts Institute<br>
+            <a href="https://glitzfusion.in" style="color: #d4af37; text-decoration: none;">www.glitzfusion.in</a>
+          </div>
+          
+          <div class="disclaimer">
+            This is an automated message from GLITZFUSION. Please do not reply directly to this email.<br>
+            For inquiries, please contact us at contact@glitzfusion.in<br><br>
+            If you did not submit a contact request, please contact us immediately.
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+
+  return {
+    subject: `Contact Request Received - GLITZFUSION`,
+    html,
+    text: `
+Dear ${data.firstName} ${data.lastName},
+
+Thank you for contacting GLITZFUSION! We have successfully received your message and appreciate you reaching out to us.
+
+Your Contact Request:
+- Subject: ${data.subject}
+- Category: ${data.category.charAt(0).toUpperCase() + data.category.slice(1)}
+- Submitted: ${data.submissionDate}
+
+What Happens Next?
+1. Our team will review your message within 24 hours
+2. We'll research and prepare a comprehensive response
+3. You'll receive our response within 2-3 business days
+
+Need Immediate Assistance?
+Email: contact@glitzfusion.in
+Phone: +91 (555) 123-4567
+Office Hours: Monday - Friday, 9:00 AM - 6:00 PM IST
+
+Follow Us:
+Instagram: @glitzfusion
+Facebook: GLITZFUSION
+YouTube: @glitzfusion
+
+Best regards,
+The GLITZFUSION Team
+
+GLITZFUSION
+Premier Creative Arts Institute
+www.glitzfusion.in
+    `
+  }
+}
+
+// Contact status update email template
+export const generateContactStatusUpdateEmail = (data: {
+  firstName: string
+  lastName: string
+  subject: string
+  status: string
+  previousStatus: string
+  adminNotes?: string
+  category: string
+  submissionDate: string
+}) => {
+  const statusConfig = {
+    pending: {
+      title: 'Contact Request Under Review',
+      color: '#f59e0b',
+      message: 'Your contact request is currently under review by our team.'
+    },
+    in_progress: {
+      title: 'Contact Request In Progress',
+      color: '#3b82f6',
+      message: 'We are actively working on your request and will have an update soon.'
+    },
+    resolved: {
+      title: 'Contact Request Resolved',
+      color: '#10b981',
+      message: 'Your contact request has been resolved. Thank you for reaching out to us!'
+    },
+    closed: {
+      title: 'Contact Request Closed',
+      color: '#6b7280',
+      message: 'Your contact request has been closed. If you need further assistance, please submit a new request.'
+    }
+  }
+
+  const config = statusConfig[data.status as keyof typeof statusConfig] || statusConfig.pending
+  
+  // Check if status actually changed or if it's just a notes update
+  const statusChanged = data.status !== data.previousStatus
+  const emailTitle = statusChanged ? config.title : 'Contact Request Update'
+  const emailMessage = statusChanged ? config.message : 'We have an update regarding your contact request.'
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${config.title} - GLITZFUSION</title>
+      <style>
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        
+        body {
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          line-height: 1.6;
+          color: #ffffff;
+          background: #0a0a0a;
+          margin: 0;
+          padding: 0;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .email-container {
+          max-width: 600px;
+          margin: 0 auto;
+          background: #0a0a0a;
+          min-height: 100vh;
+        }
+        
+        .header {
+          background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+          padding: 40px 30px;
+          text-align: center;
+          border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+          position: relative;
+        }
+        
+        .header::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: radial-gradient(circle at 50% 50%, rgba(212, 175, 55, 0.1) 0%, transparent 70%);
+          pointer-events: none;
+        }
+        
+        .logo {
+          font-size: 32px;
+          font-weight: 800;
+          background: linear-gradient(135deg, #d4af37 0%, #f4d03f 50%, #d4af37 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          margin-bottom: 8px;
+          position: relative;
+          z-index: 1;
+        }
+        
+        .tagline {
+          color: #a0a0a0;
+          font-size: 16px;
+          position: relative;
+          z-index: 1;
+        }
+        
+        .main-content {
+          padding: 40px 30px;
+        }
+        
+        .glass-panel {
+          background: rgba(255, 255, 255, 0.05);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 16px;
+          padding: 32px;
+          margin-bottom: 24px;
+        }
+        
+        .status-header {
+          text-align: center;
+          margin-bottom: 32px;
+        }
+        
+        .status-badge {
+          display: inline-block;
+          padding: 12px 24px;
+          border-radius: 50px;
+          font-size: 14px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          margin-bottom: 16px;
+          background: ${config.color}20;
+          color: ${config.color};
+          border: 1px solid ${config.color}40;
+        }
+        
+        .status-title {
+          font-size: 24px;
+          font-weight: 600;
+          color: #ffffff;
+          margin-bottom: 8px;
+        }
+        
+        .status-message {
+          font-size: 16px;
+          color: #e5e5e5;
+          line-height: 1.7;
+        }
+        
+        .contact-details {
+          background: rgba(212, 175, 55, 0.1);
+          border: 1px solid rgba(212, 175, 55, 0.2);
+          border-radius: 12px;
+          padding: 24px;
+          margin-bottom: 24px;
+        }
+        
+        .details-title {
+          color: #d4af37;
+          font-size: 18px;
+          font-weight: 600;
+          margin-bottom: 16px;
+        }
+        
+        .detail-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          padding: 8px 0;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .detail-row:last-child {
+          border-bottom: none;
+        }
+        
+        .detail-label {
+          color: #a0a0a0;
+          font-weight: 500;
+          min-width: 120px;
+        }
+        
+        .detail-value {
+          color: #ffffff;
+          flex: 1;
+          text-align: right;
+        }
+        
+        .admin-notes {
+          background: rgba(59, 130, 246, 0.1);
+          border: 1px solid rgba(59, 130, 246, 0.2);
+          border-radius: 12px;
+          padding: 24px;
+          margin-bottom: 24px;
+        }
+        
+        .notes-title {
+          color: #3b82f6;
+          font-size: 18px;
+          font-weight: 600;
+          margin-bottom: 16px;
+        }
+        
+        .notes-content {
+          color: #e5e5e5;
+          font-size: 16px;
+          line-height: 1.7;
+          white-space: pre-wrap;
+        }
+        
+        .footer {
+          background: rgba(255, 255, 255, 0.02);
+          padding: 32px 30px;
+          text-align: center;
+          border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .social-links {
+          margin-bottom: 20px;
+        }
+        
+        .social-link {
+          display: inline-block;
+          margin: 0 12px;
+          color: #d4af37;
+          text-decoration: none;
+          font-size: 14px;
+          transition: color 0.3s ease;
+        }
+        
+        .social-link:hover {
+          color: #f4d03f;
+        }
+        
+        .company-info {
+          color: #a0a0a0;
+          font-size: 14px;
+          line-height: 1.6;
+          margin-bottom: 16px;
+        }
+        
+        .disclaimer {
+          color: #666666;
+          font-size: 12px;
+          line-height: 1.5;
+          border-top: 1px solid rgba(255, 255, 255, 0.1);
+          padding-top: 16px;
+        }
+
+        @media (max-width: 640px) {
+          .email-container {
+            margin: 0;
+            max-width: 100%;
+          }
+          
+          .header, .main-content, .footer {
+            padding-left: 16px;
+            padding-right: 16px;
+          }
+          
+          .glass-panel, .contact-details, .admin-notes {
+            padding: 20px;
+          }
+          
+          .logo {
+            font-size: 26px;
+          }
+          
+          .status-title {
+            font-size: 20px;
+          }
+          
+          .detail-row {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+          
+          .detail-value {
+            text-align: left;
+            margin-top: 4px;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="email-container">
+        <div class="header">
+          <div class="logo">GLITZFUSION</div>
+          <div class="tagline">Premier Creative Arts Institute</div>
+        </div>
+        
+        <div class="main-content">
+          <div class="glass-panel">
+            <div class="status-header">
+              <div class="status-badge">${data.status.replace('_', ' ')}</div>
+              <div class="status-title">${emailTitle}</div>
+              <div class="status-message">${emailMessage}</div>
+            </div>
+            
+            <div class="contact-details">
+              <div class="details-title">Contact Request Details</div>
+              <div class="detail-row">
+                <span class="detail-label">Subject:</span>
+                <span class="detail-value">${data.subject}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Category:</span>
+                <span class="detail-value">${data.category.charAt(0).toUpperCase() + data.category.slice(1)}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Submitted:</span>
+                <span class="detail-value">${data.submissionDate}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Previous Status:</span>
+                <span class="detail-value">${data.previousStatus.replace('_', ' ').charAt(0).toUpperCase() + data.previousStatus.replace('_', ' ').slice(1)}</span>
+              </div>
+            </div>
+            
+            ${data.adminNotes ? `
+            <div class="admin-notes">
+              <div class="notes-title">Additional Information</div>
+              <div class="notes-content">${data.adminNotes}</div>
+            </div>
+            ` : ''}
+          </div>
+        </div>
+        
+        <div class="footer">
+          <div class="social-links">
+            <a href="https://instagram.com/glitzfusion" class="social-link">Instagram</a>
+            <a href="https://facebook.com/glitzfusion" class="social-link">Facebook</a>
+            <a href="https://youtube.com/@glitzfusion" class="social-link">YouTube</a>
+          </div>
+          
+          <div class="company-info">
+            <strong style="color: #d4af37;">GLITZFUSION</strong><br>
+            Premier Creative Arts Institute<br>
+            <a href="https://glitzfusion.in" style="color: #d4af37; text-decoration: none;">www.glitzfusion.in</a>
+          </div>
+          
+          <div class="disclaimer">
+            This is an automated message from GLITZFUSION. Please do not reply directly to this email.<br>
+            For inquiries, please contact us at contact@glitzfusion.in<br><br>
+            If you believe you received this email in error, please contact us immediately.
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+
+  return {
+    subject: `${emailTitle} - GLITZFUSION`,
+    html,
+    text: `
+Dear ${data.firstName} ${data.lastName},
+
+${emailMessage}
+
+Contact Request Details:
+- Subject: ${data.subject}
+- Category: ${data.category.charAt(0).toUpperCase() + data.category.slice(1)}
+- Submitted: ${data.submissionDate}
+- Previous Status: ${data.previousStatus.replace('_', ' ').charAt(0).toUpperCase() + data.previousStatus.replace('_', ' ').slice(1)}
+- Current Status: ${data.status.replace('_', ' ').charAt(0).toUpperCase() + data.status.replace('_', ' ').slice(1)}
+
+${data.adminNotes ? `Additional Information:\n${data.adminNotes}\n\n` : ''}Need Further Assistance?
+Email: contact@glitzfusion.in
+Phone: +91 (555) 123-4567
+Office Hours: Monday - Friday, 9:00 AM - 6:00 PM IST
+
+Best regards,
+The GLITZFUSION Team
 
 GLITZFUSION
 Premier Creative Arts Institute

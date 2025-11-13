@@ -2,60 +2,51 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, ChevronRight, Quote, Star } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Quote, Star, Loader2 } from 'lucide-react'
 import { GlassPanel } from '@/components/ui/GlassPanel'
 import { cn, fadeInUp, staggerContainer } from '@/lib/utils'
+import { useTestimonials } from '@/hooks/useTestimonials'
 
-const testimonials = [
+// Fallback testimonials in case database is empty
+const fallbackTestimonials = [
   {
-    id: 1,
-    name: 'Sarah Chen',
-    role: 'Professional Actress',
-    course: 'Acting Program',
-    image: '/api/placeholder/80/80',
-    quote: 'Glitz Fusion transformed my passion into a thriving career. The personalized attention and industry connections made all the difference.',
+    _id: '1',
+    firstName: 'Sarah',
+    lastName: 'Chen',
+    email: 'sarah@example.com',
     rating: 5,
-    achievement: 'Lead role in Netflix series'
+    review: 'Glitz Fusion transformed my passion into a thriving career. The personalized attention and industry connections made all the difference.',
+    status: 'approved' as const,
+    isPublished: true,
+    isFeatured: true,
+    submittedAt: new Date(),
+    updatedAt: new Date()
   },
   {
-    id: 2,
-    name: 'Marcus Rodriguez',
-    role: 'Commercial Photographer',
-    course: 'Photography Course',
-    image: '/api/placeholder/80/80',
-    quote: 'The technical skills and creative vision I developed here launched my photography business. The instructors are true industry professionals.',
+    _id: '2',
+    firstName: 'Marcus',
+    lastName: 'Rodriguez',
+    email: 'marcus@example.com',
     rating: 5,
-    achievement: 'Founded successful studio'
+    review: 'The technical skills and creative vision I developed here launched my photography business. The instructors are true industry professionals.',
+    status: 'approved' as const,
+    isPublished: true,
+    isFeatured: true,
+    submittedAt: new Date(),
+    updatedAt: new Date()
   },
   {
-    id: 3,
-    name: 'Emma Thompson',
-    role: 'Contemporary Dancer',
-    course: 'Dance Academy',
-    image: '/api/placeholder/80/80',
-    quote: 'The dance program pushed me beyond my limits. I discovered techniques and styles I never knew existed. Truly life-changing.',
+    _id: '3',
+    firstName: 'Emma',
+    lastName: 'Thompson',
+    email: 'emma@example.com',
     rating: 5,
-    achievement: 'Principal dancer at renowned company'
-  },
-  {
-    id: 4,
-    name: 'David Kim',
-    role: 'Film Director',
-    course: 'Filmmaking Program',
-    image: '/api/placeholder/80/80',
-    quote: 'From concept to post-production, Glitz Fusion gave me the complete toolkit. My first short film won three festival awards.',
-    rating: 5,
-    achievement: 'Award-winning filmmaker'
-  },
-  {
-    id: 5,
-    name: 'Isabella Martinez',
-    role: 'Fashion Model',
-    course: 'Modeling Training',
-    image: '/api/placeholder/80/80',
-    quote: 'The confidence and professionalism I gained here opened doors I never imagined. The runway training was exceptional.',
-    rating: 5,
-    achievement: 'International runway model'
+    review: 'The dance program pushed me beyond my limits. I discovered techniques and styles I never knew existed. Truly life-changing.',
+    status: 'approved' as const,
+    isPublished: true,
+    isFeatured: true,
+    submittedAt: new Date(),
+    updatedAt: new Date()
   }
 ]
 
@@ -63,16 +54,26 @@ export function TestimonialsSection() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isAutoPlaying, setIsAutoPlaying] = useState(true)
 
+  // Fetch testimonials from database
+  const { testimonials: dbTestimonials, loading, error } = useTestimonials({
+    published: true,
+    random: true,
+    limit: 10
+  })
+
+  // Use database testimonials or fallback
+  const testimonials = dbTestimonials.length > 0 ? dbTestimonials : fallbackTestimonials
+
   // Auto-advance testimonials
   useEffect(() => {
-    if (!isAutoPlaying) return
+    if (!isAutoPlaying || testimonials.length === 0) return
 
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % testimonials.length)
     }, 5000)
 
     return () => clearInterval(interval)
-  }, [isAutoPlaying])
+  }, [isAutoPlaying, testimonials.length])
 
   const goToSlide = (index: number) => {
     setCurrentIndex(index)
@@ -90,6 +91,25 @@ export function TestimonialsSection() {
     setCurrentIndex((prev) => (prev + 1) % testimonials.length)
     setIsAutoPlaying(false)
     setTimeout(() => setIsAutoPlaying(true), 10000)
+  }
+
+  // Show loading state
+  if (loading) {
+    return (
+      <section className="py-20 relative">
+        <div className="container-custom">
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="w-8 h-8 animate-spin text-primary-gold" />
+            <span className="ml-2 text-gray-300">Loading testimonials...</span>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  // Don't render if no testimonials available
+  if (testimonials.length === 0) {
+    return null
   }
 
   return (
@@ -150,7 +170,7 @@ export function TestimonialsSection() {
                     transition={{ duration: 0.6, delay: 0.3 }}
                     className="text-xl md:text-2xl lg:text-3xl font-light text-white leading-relaxed max-w-4xl mx-auto"
                   >
-                    "{testimonials[currentIndex].quote}"
+                    "{testimonials[currentIndex].review}"
                   </motion.blockquote>
 
                   {/* Rating */}
@@ -175,23 +195,23 @@ export function TestimonialsSection() {
                     {/* Avatar */}
                     <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary-gold/30 to-primary-gold/10 border-2 border-primary-gold/30 flex items-center justify-center">
                       <div className="w-16 h-16 rounded-full bg-gradient-gold flex items-center justify-center text-primary-black font-bold text-xl">
-                        {testimonials[currentIndex].name.split(' ').map(n => n[0]).join('')}
+                        {testimonials[currentIndex].firstName[0]}{testimonials[currentIndex].lastName[0]}
                       </div>
                     </div>
 
                     {/* Details */}
                     <div className="text-center md:text-left">
                       <h3 className="text-xl font-bold text-white mb-1">
-                        {testimonials[currentIndex].name}
+                        {testimonials[currentIndex].firstName} {testimonials[currentIndex].lastName}
                       </h3>
                       <p className="text-primary-gold font-medium mb-1">
-                        {testimonials[currentIndex].role}
+                        GLITZFUSION Graduate
                       </p>
                       <p className="text-sm text-gray-400">
-                        {testimonials[currentIndex].course} Graduate
+                        {testimonials[currentIndex].rating} Star Review
                       </p>
                       <p className="text-xs text-primary-gold/80 mt-2">
-                        {testimonials[currentIndex].achievement}
+                        Verified Student
                       </p>
                     </div>
                   </motion.div>

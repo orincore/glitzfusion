@@ -16,6 +16,7 @@ const navigation = [
   { name: 'Gallery', href: '/gallery' },
   { name: 'Admissions', href: '/admissions' },
   { name: 'Testimonials', href: '/testimonials' },
+  { name: 'Careers', href: '/careers' },
   { name: 'Contact', href: '/contact' },
   { name: 'Blog', href: '/blog' },
 ]
