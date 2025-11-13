@@ -7,6 +7,9 @@ import { CourseDetailContent } from '@/components/sections/CourseDetailContent'
 // Enable dynamic rendering for courses not in static params
 export const dynamicParams = true
 
+// Enable ISR (Incremental Static Regeneration)
+export const revalidate = 3600 // Revalidate every hour
+
 interface CoursePageProps {
   params: Promise<{ slug: string }>
 }
@@ -44,52 +47,85 @@ interface DatabaseCourse {
   updatedAt: string
 }
 
-async function getCourseFromAPI(slug: string): Promise<DatabaseCourse | null> {
+async function getCourseFromDB(slug: string): Promise<DatabaseCourse | null> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 
-                   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+    // Import database modules only when needed
+    const dbConnect = (await import('@/lib/mongodb')).default
+    const Course = (await import('@/models/Course')).default
+    const Media = (await import('@/models/Media')).default
+    const { processCourseMediaUrls } = await import('@/lib/media-proxy')
     
-    const response = await fetch(`${baseUrl}/api/courses/slug/${slug}`, {
-      cache: 'no-store', // Always fetch fresh data
-      headers: {
-        'Content-Type': 'application/json',
-      }
-    })
+    await dbConnect()
     
-    if (!response.ok) {
-      if (response.status === 404) {
-        return null
-      }
-      throw new Error(`HTTP error! status: ${response.status}`)
+    const course = await Course.findOne({ slug, isActive: true })
+    
+    if (!course) {
+      return null
     }
-    
-    return await response.json()
+
+    // Process course data similar to API route
+    const rawCourse = course.toObject()
+
+    const courseData: DatabaseCourse = {
+      _id: String(course._id),
+      id: rawCourse.id,
+      slug: rawCourse.slug,
+      title: rawCourse.title,
+      summary: rawCourse.summary,
+      description: rawCourse.description,
+      icon: rawCourse.icon,
+      duration: rawCourse.duration,
+      level: rawCourse.level,
+      format: rawCourse.format,
+      investment: rawCourse.investment,
+      nextStart: rawCourse.nextStart,
+      color: rawCourse.color,
+      highlights: rawCourse.highlights || [],
+      curriculum: rawCourse.curriculum || [],
+      outcomes: rawCourse.outcomes || [],
+      heroMedia: rawCourse.heroMedia,
+      videoUrl: rawCourse.videoUrl,
+      isActive: rawCourse.isActive,
+      createdAt: course.createdAt ? course.createdAt.toISOString() : '',
+      updatedAt: course.updatedAt ? course.updatedAt.toISOString() : ''
+    }
+
+    if (courseData.heroMedia?.mediaId) {
+      try {
+        const media = await Media.findById(courseData.heroMedia.mediaId)
+        if (media) {
+          const heroMedia = {
+            mediaId: media._id.toString(),
+            url: media.cloudflareKey,
+            mediaType: media.mimeType.startsWith('video/') ? 'video' as const : 'image' as const,
+            alt: media.alt || courseData.heroMedia.alt || '',
+            cloudflareKey: media.cloudflareKey
+          }
+          
+          courseData.heroMedia = processCourseMediaUrls(heroMedia)
+        }
+      } catch (mediaError) {
+        console.warn('Failed to populate media:', mediaError)
+      }
+    }
+
+    return courseData
   } catch (error) {
-    console.error('Error fetching course:', error)
+    console.error('Error fetching course from DB:', error)
     return null
   }
 }
 
 export async function generateStaticParams() {
-  // Fetch all active courses from API for static generation
+  // Fetch all active courses directly from database for static generation
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 
-                   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+    const dbConnect = (await import('@/lib/mongodb')).default
+    const Course = (await import('@/models/Course')).default
     
-    const response = await fetch(`${baseUrl}/api/courses`, {
-      cache: 'no-store',
-      headers: {
-        'Content-Type': 'application/json',
-      }
-    })
+    await dbConnect()
+    const courses = await Course.find({ isActive: true }, { slug: 1 }).lean()
     
-    if (!response.ok) {
-      console.warn('Failed to fetch courses for static params, using empty array')
-      return []
-    }
-    
-    const courses = await response.json()
-    return courses.map((course: DatabaseCourse) => ({ slug: course.slug }))
+    return courses.map((course) => ({ slug: course.slug }))
   } catch (error) {
     console.warn('Error generating static params:', error)
     return []
@@ -99,8 +135,8 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: CoursePageProps): Promise<Metadata> {
   const { slug } = await params
   
-  // Get course data from API only
-  const course = await getCourseFromAPI(slug)
+  // Get course data directly from database for metadata
+  const course = await getCourseFromDB(slug)
 
   if (!course) {
     return {
@@ -118,8 +154,8 @@ export async function generateMetadata({ params }: CoursePageProps): Promise<Met
 export default async function CourseDetailPage({ params }: CoursePageProps) {
   const { slug } = await params
   
-  // Get course data from API only
-  const course = await getCourseFromAPI(slug)
+  // Get course data directly from database
+  const course = await getCourseFromDB(slug)
 
   if (!course) {
     notFound()
