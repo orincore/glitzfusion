@@ -3,12 +3,18 @@ import dbConnect from '@/lib/mongodb'
 import Course from '@/models/Course'
 import Media from '@/models/Media'
 import { getSignedDownloadUrl } from '@/lib/cloudflare-r2'
+import { processCourseMediaUrls } from '@/lib/media-proxy'
 import { requireAuth } from '@/lib/auth'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     await dbConnect()
     const courses = await Course.find({ isActive: true }).sort({ createdAt: -1 })
+    
+    // Get base URL for proxy
+    const baseUrl = request.headers.get('host') 
+      ? `${request.headers.get('x-forwarded-proto') || 'http'}://${request.headers.get('host')}`
+      : undefined
     
     // Populate media data for courses that have heroMedia
     const coursesWithMedia = await Promise.all(
@@ -18,22 +24,16 @@ export async function GET() {
           try {
             const media = await Media.findById(courseData.heroMedia.mediaId)
             if (media) {
-              let mediaUrl = media.url
-
-              if (!mediaUrl || mediaUrl.includes('r2.cloudflarestorage.com')) {
-                try {
-                  mediaUrl = await getSignedDownloadUrl(media.cloudflareKey)
-                } catch (signedUrlError) {
-                  console.warn('Failed to generate signed URL for media:', media._id, signedUrlError)
-                }
-              }
-
-              courseData.heroMedia = {
+              // Use proxy URL instead of direct R2 URL
+              const heroMedia = {
                 mediaId: media._id.toString(),
-                url: mediaUrl || media.url,
+                url: media.cloudflareKey,
                 mediaType: media.mimeType.startsWith('video/') ? 'video' : 'image',
-                alt: media.alt || courseData.heroMedia.alt || ''
+                alt: media.alt || courseData.heroMedia.alt || '',
+                cloudflareKey: media.cloudflareKey
               }
+              
+              courseData.heroMedia = processCourseMediaUrls(heroMedia, baseUrl)
             }
           } catch (mediaError) {
             console.warn('Failed to populate media for course:', course._id, mediaError)

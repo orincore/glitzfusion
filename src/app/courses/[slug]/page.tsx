@@ -2,8 +2,10 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import PageHeader from '@/components/ui/PageHeader'
-import { courseSlugs, getCourseBySlug } from '@/data/courses'
 import { CourseDetailContent } from '@/components/sections/CourseDetailContent'
+
+// Enable dynamic rendering for courses not in static params
+export const dynamicParams = true
 
 interface CoursePageProps {
   params: Promise<{ slug: string }>
@@ -44,9 +46,14 @@ interface DatabaseCourse {
 
 async function getCourseFromAPI(slug: string): Promise<DatabaseCourse | null> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 
+                   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+    
     const response = await fetch(`${baseUrl}/api/courses/slug/${slug}`, {
-      cache: 'no-store' // Always fetch fresh data
+      cache: 'no-store', // Always fetch fresh data
+      headers: {
+        'Content-Type': 'application/json',
+      }
     })
     
     if (!response.ok) {
@@ -63,53 +70,47 @@ async function getCourseFromAPI(slug: string): Promise<DatabaseCourse | null> {
   }
 }
 
-export function generateStaticParams() {
-  // Generate static params from hardcoded data for build time
-  // This ensures existing courses work even if DB is not available during build
-  return courseSlugs.map((slug) => ({ slug }))
+export async function generateStaticParams() {
+  // Fetch all active courses from API for static generation
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 
+                   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+    
+    const response = await fetch(`${baseUrl}/api/courses`, {
+      cache: 'no-store',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    })
+    
+    if (!response.ok) {
+      console.warn('Failed to fetch courses for static params, using empty array')
+      return []
+    }
+    
+    const courses = await response.json()
+    return courses.map((course: DatabaseCourse) => ({ slug: course.slug }))
+  } catch (error) {
+    console.warn('Error generating static params:', error)
+    return []
+  }
 }
 
 export async function generateMetadata({ params }: CoursePageProps): Promise<Metadata> {
   const { slug } = await params
   
-  // Try to get from API first, fallback to static data
-  let course = await getCourseFromAPI(slug)
-  if (!course) {
-    const staticCourse = getCourseBySlug(slug)
-    if (staticCourse) {
-      // Convert static course to database format
-      course = {
-        _id: '',
-        id: staticCourse.id,
-        slug: staticCourse.slug,
-        title: staticCourse.title,
-        summary: staticCourse.summary,
-        description: staticCourse.description,
-        icon: staticCourse.icon.name || 'Users', // Convert LucideIcon to string
-        duration: staticCourse.duration,
-        level: staticCourse.level,
-        format: staticCourse.format,
-        investment: staticCourse.investment,
-        nextStart: staticCourse.nextStart,
-        color: staticCourse.color,
-        highlights: staticCourse.highlights,
-        curriculum: staticCourse.curriculum,
-        outcomes: staticCourse.outcomes,
-        isActive: true,
-        createdAt: '',
-        updatedAt: ''
-      }
-    }
-  }
+  // Get course data from API only
+  const course = await getCourseFromAPI(slug)
 
   if (!course) {
     return {
-      title: 'Course Not Found | Glitz Fusion Academy',
+      title: 'Course Not Found | GLITZFUSION Academy',
+      description: 'The requested course could not be found.'
     }
   }
 
   return {
-    title: `${course.title} Course | Glitz Fusion Academy`,
+    title: `${course.title} Course | GLITZFUSION Academy`,
     description: course.description,
   }
 }
@@ -117,35 +118,8 @@ export async function generateMetadata({ params }: CoursePageProps): Promise<Met
 export default async function CourseDetailPage({ params }: CoursePageProps) {
   const { slug } = await params
   
-  // Try to get from API first, fallback to static data
-  let course = await getCourseFromAPI(slug)
-  if (!course) {
-    const staticCourse = getCourseBySlug(slug)
-    if (staticCourse) {
-      // Convert static course to database format
-      course = {
-        _id: '',
-        id: staticCourse.id,
-        slug: staticCourse.slug,
-        title: staticCourse.title,
-        summary: staticCourse.summary,
-        description: staticCourse.description,
-        icon: staticCourse.icon.name || 'Users', // Convert LucideIcon to string
-        duration: staticCourse.duration,
-        level: staticCourse.level,
-        format: staticCourse.format,
-        investment: staticCourse.investment,
-        nextStart: staticCourse.nextStart,
-        color: staticCourse.color,
-        highlights: staticCourse.highlights,
-        curriculum: staticCourse.curriculum,
-        outcomes: staticCourse.outcomes,
-        isActive: true,
-        createdAt: '',
-        updatedAt: ''
-      }
-    }
-  }
+  // Get course data from API only
+  const course = await getCourseFromAPI(slug)
 
   if (!course) {
     notFound()

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import dbConnect from '@/lib/mongodb'
 import Gallery from '@/models/Gallery'
 import { deleteFromR2 } from '@/lib/cloudflare-r2'
+import { processGalleryItemUrls } from '@/lib/media-proxy'
 
 // GET - Fetch single gallery item
 export async function GET(
@@ -20,7 +21,14 @@ export async function GET(
       )
     }
     
-    return NextResponse.json(item)
+    // Process item to use proxy URLs for CORS compatibility
+    const baseUrl = request.headers.get('host') 
+      ? `${request.headers.get('x-forwarded-proto') || 'http'}://${request.headers.get('host')}`
+      : undefined
+    
+    const processedItem = processGalleryItemUrls(item.toObject(), baseUrl)
+    
+    return NextResponse.json(processedItem)
   } catch (error) {
     console.error('Gallery item fetch error:', error)
     return NextResponse.json(

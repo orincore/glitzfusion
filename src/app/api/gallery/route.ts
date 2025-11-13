@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import dbConnect from '@/lib/mongodb'
 import Gallery from '@/models/Gallery'
 import { uploadToR2, generateUniqueKey, deleteFromR2 } from '@/lib/cloudflare-r2'
+import { processGalleryItemUrls } from '@/lib/media-proxy'
 import sharp from 'sharp'
 
 // GET - Fetch all gallery items with filtering
@@ -34,8 +35,15 @@ export async function GET(request: NextRequest) {
     
     const total = await Gallery.countDocuments(query)
     
+    // Process items to use proxy URLs for CORS compatibility
+    const baseUrl = request.headers.get('host') 
+      ? `${request.headers.get('x-forwarded-proto') || 'http'}://${request.headers.get('host')}`
+      : undefined
+    
+    const processedItems = items.map(item => processGalleryItemUrls(item.toObject(), baseUrl))
+    
     return NextResponse.json({
-      items,
+      items: processedItems,
       pagination: {
         page,
         limit,
