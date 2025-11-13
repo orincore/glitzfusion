@@ -49,14 +49,39 @@ class EmailService {
   }
 
   async sendEmail(options: EmailOptions): Promise<boolean> {
+    console.log('🔄 Attempting to send email...')
+    console.log('📧 Email config check:', {
+      hasTransporter: !!this.transporter,
+      smtpHost: process.env.SMTP_HOST,
+      smtpPort: process.env.SMTP_PORT,
+      smtpUser: process.env.SMTP_USER ? '***configured***' : 'missing',
+      smtpFrom: process.env.SMTP_FROM,
+      to: options.to,
+      subject: options.subject
+    })
+
     if (!this.transporter) {
-      console.error('Email transporter not initialized')
+      console.error('❌ Email transporter not initialized')
+      console.error('Environment variables:', {
+        SMTP_HOST: process.env.SMTP_HOST,
+        SMTP_PORT: process.env.SMTP_PORT,
+        SMTP_SECURE: process.env.SMTP_SECURE,
+        SMTP_USER: process.env.SMTP_USER ? 'SET' : 'MISSING',
+        SMTP_PASS: process.env.SMTP_PASS ? 'SET' : 'MISSING',
+        SMTP_FROM: process.env.SMTP_FROM
+      })
       return false
     }
 
     try {
+      // Test connection first
+      console.log('🔍 Testing SMTP connection...')
+      await this.transporter.verify()
+      console.log('✅ SMTP connection verified')
+
+      const fromEmail = process.env.SMTP_FROM || 'contact@glitzfusion.in'
       const mailOptions = {
-        from: `"GLITZFUSION" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+        from: `"GLITZFUSION" <${fromEmail}>`,
         replyTo: 'contact@glitzfusion.in',
         to: options.to,
         subject: options.subject,
@@ -64,11 +89,33 @@ class EmailService {
         text: options.text || this.stripHtml(options.html)
       }
 
+      console.log('📤 Sending email with options:', {
+        from: mailOptions.from,
+        to: mailOptions.to,
+        subject: mailOptions.subject,
+        hasHtml: !!mailOptions.html,
+        hasText: !!mailOptions.text
+      })
+
       const result = await this.transporter.sendMail(mailOptions)
-      console.log('Email sent successfully:', result.messageId)
+      console.log('✅ Email sent successfully!')
+      console.log('📨 Message details:', {
+        messageId: result.messageId,
+        response: result.response,
+        accepted: result.accepted,
+        rejected: result.rejected
+      })
       return true
-    } catch (error) {
-      console.error('Failed to send email:', error)
+    } catch (error: any) {
+      console.error('❌ Failed to send email:', error)
+      console.error('Error details:', {
+        name: error?.name,
+        message: error?.message,
+        code: error?.code,
+        command: error?.command,
+        response: error?.response,
+        responseCode: error?.responseCode
+      })
       return false
     }
   }
