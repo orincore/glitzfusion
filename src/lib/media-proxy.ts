@@ -6,23 +6,21 @@
  * Converts R2 URLs to proxy URLs for development to avoid CORS issues
  */
 export function getProxyUrl(cloudflareKey: string, baseUrl?: string): string {
-  // In production, you might want to use direct R2 URLs
-  // In development, use the proxy to avoid CORS issues
-  const isDevelopment = process.env.NODE_ENV === 'development'
-  
-  if (isDevelopment) {
-    const base = baseUrl || 
-                 process.env.NEXT_PUBLIC_BASE_URL || 
-                 'http://localhost:3000'
-    return `${base}/api/media/proxy/${encodeURIComponent(cloudflareKey)}`
+  const path = `/api/media/proxy/${encodeURIComponent(cloudflareKey)}`
+
+  if (baseUrl) {
+    return `${baseUrl.replace(/\/$/, '')}${path}`
   }
-  
-  // In production, you can still use proxy or direct URLs based on your setup
-  // For now, let's use proxy for consistency
-  const base = baseUrl || 
-               process.env.NEXT_PUBLIC_BASE_URL || 
-               (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
-  return `${base}/api/media/proxy/${encodeURIComponent(cloudflareKey)}`
+
+  if (typeof window !== 'undefined') {
+    return path
+  }
+
+  const envBase = process.env.NEXT_PUBLIC_SITE_URL
+    || process.env.NEXT_PUBLIC_BASE_URL
+    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '')
+
+  return envBase ? `${envBase.replace(/\/$/, '')}${path}` : path
 }
 
 /**
