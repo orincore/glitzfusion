@@ -11,7 +11,8 @@ const nextConfig = {
       'files.ailey.org',
       'apeirodesign.com',
       'cdn.prod.website-files.com',
-      'images.unsplash.com'
+      'images.unsplash.com',
+      'pub-ab8a0d13b5164870b78c22a5bb310c57.r2.dev'
     ],
   },
   compiler: {

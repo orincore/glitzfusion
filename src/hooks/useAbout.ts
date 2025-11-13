@@ -1,5 +1,39 @@
 import { useState, useEffect } from 'react'
 
+export interface TeamMember {
+  id: string
+  name: string
+  role: string
+  bio: string
+  image: string
+  socialLinks?: {
+    twitter?: string
+    linkedin?: string
+    instagram?: string
+    facebook?: string
+  }
+  order: number
+  isActive: boolean
+}
+
+export interface Founder {
+  id: string
+  name: string
+  role: string
+  bio: string
+  image: string
+  longBio?: string
+  achievements?: string[]
+  socialLinks?: {
+    twitter?: string
+    linkedin?: string
+    instagram?: string
+    facebook?: string
+  }
+  order: number
+  isActive: boolean
+}
+
 export interface AboutContent {
   // Hero Section
   heroTitle?: string
@@ -13,6 +47,11 @@ export interface AboutContent {
   aboutDescription1?: string
   aboutDescription2?: string
   aboutVideoUrl?: string
+  
+  // Our Story Section
+  storyTitle?: string
+  storyDescription?: string
+  storyImage?: string
   
   // Features
   feature1Title?: string
@@ -37,6 +76,25 @@ export interface AboutContent {
   stat2Value?: string
   stat2Label?: string
   
+  // Values Section
+  valuesTitle?: string
+  valuesDescription?: string
+  
+  // Team Section
+  teamTitle?: string
+  teamSubtitle?: string
+  teamDescription?: string
+  
+  // Founders Section
+  foundersTitle?: string
+  foundersSubtitle?: string
+  foundersDescription?: string
+  
+  // Journey Section
+  journeyTitle?: string
+  journeySubtitle?: string
+  journeyDescription?: string
+  
   // CTA Section
   ctaTitle?: string
   ctaDescription?: string
@@ -53,6 +111,10 @@ export interface AboutContent {
   socialFacebook?: string
   socialTwitter?: string
   socialYoutube?: string
+  
+  // Dynamic Data
+  teamMembers?: TeamMember[]
+  founders?: Founder[]
 }
 
 export function useAbout() {

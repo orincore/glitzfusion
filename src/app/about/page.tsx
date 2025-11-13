@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { AboutHero } from '@/components/sections/AboutHero';
 import { OurStory } from '@/components/sections/OurStory';
+import { FoundersSection } from '@/components/sections/FoundersSection';
 import { TeamShowcase } from '@/components/sections/TeamShowcase';
 import { Values } from '@/components/sections/Values';
 import { Testimonials } from '@/components/sections/Testimonials';
@@ -16,6 +17,7 @@ export default function AboutPage() {
     <main className="min-h-screen">
       <AboutHero />
       <OurStory />
+      <FoundersSection />
       <TeamShowcase />
       <Values />
       <Testimonials />

@@ -14,7 +14,9 @@ import {
   Menu,
   X,
   Info,
-  Camera
+  Camera,
+  GraduationCap,
+  Mail
 } from 'lucide-react'
 
 interface AdminLayoutProps {
@@ -64,6 +66,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { name: 'About', href: '/admin/about', icon: Info },
     { name: 'Courses', href: '/admin/courses', icon: BookOpen },
     { name: 'Gallery', href: '/admin/gallery', icon: Camera },
+    { name: 'Admissions', href: '/admin/admissions', icon: GraduationCap },
+    { name: 'Email Settings', href: '/admin/email', icon: Mail },
     { name: 'Media', href: '/admin/media', icon: Image },
     { name: 'Content', href: '/admin/content', icon: FileText },
     { name: 'Users', href: '/admin/users', icon: Users },

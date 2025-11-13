@@ -1,9 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useAbout, AboutContent } from '@/hooks/useAbout'
-import { Save, Upload, Eye, EyeOff, Loader2, CheckCircle, XCircle, Mail, Phone, MapPin, Instagram, Facebook, Twitter, Youtube } from 'lucide-react'
+import { useAbout, AboutContent, TeamMember, Founder } from '@/hooks/useAbout'
+import { Save, Upload, Eye, EyeOff, Loader2, CheckCircle, XCircle, Mail, Phone, MapPin, Instagram, Facebook, Twitter, Youtube, Plus, Edit, Trash2, Users, Crown, Camera } from 'lucide-react'
 import toast, { Toaster } from 'react-hot-toast'
+import Image from 'next/image'
+import { AboutAdminTabs } from '@/components/admin/AboutAdminTabs'
 
 interface MediaUploadProps {
   onUpload: (url: string) => void
@@ -465,7 +467,7 @@ export default function AboutAdminPage() {
                     </label>
                     <input
                       type="text"
-                      value={formData[`feature${num}Title` as keyof AboutContent] || ''}
+                      value={(formData[`feature${num}Title` as keyof AboutContent] as string) || ''}
                       onChange={(e) => handleInputChange(`feature${num}Title` as keyof AboutContent, e.target.value)}
                       className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white focus:ring-2 focus:ring-primary-gold focus:border-transparent"
                       placeholder={`Feature ${num} Title`}
@@ -476,7 +478,7 @@ export default function AboutAdminPage() {
                       Description
                     </label>
                     <textarea
-                      value={formData[`feature${num}Description` as keyof AboutContent] || ''}
+                      value={(formData[`feature${num}Description` as keyof AboutContent] as string) || ''}
                       onChange={(e) => handleInputChange(`feature${num}Description` as keyof AboutContent, e.target.value)}
                       rows={3}
                       className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white focus:ring-2 focus:ring-primary-gold focus:border-transparent"
@@ -489,7 +491,7 @@ export default function AboutAdminPage() {
                     </label>
                     <input
                       type="text"
-                      value={formData[`feature${num}Icon` as keyof AboutContent] || ''}
+                      value={(formData[`feature${num}Icon` as keyof AboutContent] as string) || ''}
                       onChange={(e) => handleInputChange(`feature${num}Icon` as keyof AboutContent, e.target.value)}
                       className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white focus:ring-2 focus:ring-primary-gold focus:border-transparent"
                       placeholder="Award, Users, Target, Zap"
@@ -765,6 +767,12 @@ export default function AboutAdminPage() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Team & Founders Management */}
+        <div className="mt-12">
+          <h2 className="text-2xl font-bold text-white mb-6">Team & Founders Management</h2>
+          <AboutAdminTabs />
         </div>
 
         {/* Save Button (Mobile) */}
