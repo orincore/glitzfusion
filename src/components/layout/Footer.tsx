@@ -307,6 +307,12 @@ export function Footer() {
                   >
                     Cookie Policy
                   </Link>
+                  <Link 
+                    href="/admin/login" 
+                    className="text-gray-400 dark:text-gray-400 light:text-gray-600 hover:text-primary-gold focus:text-primary-gold focus:outline-none transition-colors duration-200"
+                  >
+                    Admin Login
+                  </Link>
                 </div>
               </div>
             </motion.div>

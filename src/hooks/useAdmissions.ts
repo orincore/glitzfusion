@@ -73,7 +73,12 @@ export function useAdmissions(): UseAdmissionsReturn {
       if (filters.sortBy) params.append('sortBy', filters.sortBy)
       if (filters.sortOrder) params.append('sortOrder', filters.sortOrder)
       
-      const response = await fetch(`/api/admissions?${params.toString()}`)
+      const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null
+      const response = await fetch(`/api/admissions?${params.toString()}`, {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      })
       
       if (!response.ok) {
         throw new Error('Failed to fetch admissions')
@@ -97,10 +102,12 @@ export function useAdmissions(): UseAdmissionsReturn {
     adminNotes?: string
   ) => {
     try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null
       const response = await fetch(`/api/admissions/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ status, adminNotes }),
       })
@@ -119,8 +126,12 @@ export function useAdmissions(): UseAdmissionsReturn {
 
   const deleteAdmission = useCallback(async (id: string) => {
     try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null
       const response = await fetch(`/api/admissions/${id}`, {
         method: 'DELETE',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       })
       
       if (!response.ok) {

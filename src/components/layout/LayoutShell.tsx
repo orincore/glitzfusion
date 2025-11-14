@@ -13,8 +13,9 @@ interface LayoutShellProps {
 export function LayoutShell({ children }: LayoutShellProps) {
   const pathname = usePathname()
   const isAdminRoute = pathname?.startsWith('/admin')
+  const isEditorRoute = pathname?.startsWith('/blog-editor')
 
-  if (isAdminRoute) {
+  if (isAdminRoute || isEditorRoute) {
     return <>{children}</>
   }
 

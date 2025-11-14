@@ -5,6 +5,43 @@ import { motion } from 'framer-motion'
 import { Mail, Phone, MapPin, Send, Clock, Calendar } from 'lucide-react'
 import { GlassPanel } from '@/components/ui/GlassPanel'
 import { cn, fadeInUp, staggerContainer } from '@/lib/utils'
+import toast from 'react-hot-toast'
+
+interface ContactForm {
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  countryCode: string
+  subject: string
+  message: string
+  category: string
+  priority: string
+}
+
+const categories = [
+  { value: 'general', label: 'General Inquiry' },
+  { value: 'admissions', label: 'Admissions' },
+  { value: 'courses', label: 'Course Information' },
+  { value: 'technical', label: 'Technical Support' },
+  { value: 'partnership', label: 'Partnership' },
+  { value: 'other', label: 'Other' }
+]
+
+const priorities = [
+  { value: 'low', label: 'Low Priority' },
+  { value: 'medium', label: 'Medium Priority' },
+  { value: 'high', label: 'High Priority' }
+]
+
+const countryCodes = [
+  { code: '+1', country: 'US/CA' },
+  { code: '+91', country: 'India' },
+  { code: '+44', country: 'UK' },
+  { code: '+61', country: 'Australia' },
+  { code: '+49', country: 'Germany' },
+  { code: '+33', country: 'France' }
+]
 
 const contactInfo = [
   {
@@ -26,38 +63,87 @@ const contactInfo = [
     subtitle: 'Los Angeles, CA 90028'
   }
 ]
-
 export function ContactSection() {
-  const [formData, setFormData] = useState({
-    name: '',
+  const [formData, setFormData] = useState<ContactForm>({
+    firstName: '',
+    lastName: '',
     email: '',
     phone: '',
-    course: '',
-    message: ''
+    countryCode: '+91',
+    subject: '',
+    message: '',
+    category: 'general',
+    priority: 'medium'
   })
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [errors, setErrors] = useState<Partial<ContactForm>>({})
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+  const handleInputChange = (field: keyof ContactForm, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: undefined }))
+    }
+  }
+
+  const validateForm = (): boolean => {
+    const newErrors: Partial<ContactForm> = {}
+
+    if (!formData.firstName.trim()) newErrors.firstName = 'First name is required'
+    if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required'
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required'
+    } else if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address'
+    }
+    if (!formData.subject.trim()) newErrors.subject = 'Subject is required'
+    if (!formData.message.trim()) newErrors.message = 'Message is required'
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsSubmitting(true)
-    
-    // Simulate form submission
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    
-    // Reset form
-    setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      course: '',
-      message: ''
-    })
-    setIsSubmitting(false)
+
+    if (!validateForm()) {
+      toast.error('Please fix the errors in the form')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const response = await fetch('/api/contacts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to submit contact form')
+      }
+
+      toast.success('Message sent successfully!')
+
+      setFormData({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        countryCode: '+91',
+        subject: '',
+        message: '',
+        category: 'general',
+        priority: 'medium'
+      })
+      setErrors({})
+    } catch (error: any) {
+      console.error('Home contact form error:', error)
+      toast.error(error.message || 'Failed to send message. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -195,100 +281,164 @@ export function ContactSection() {
               </h3>
               
               <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Name and Email Row */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Name Fields */}
+                <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-200 mb-2">
-                      Full Name *
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      First Name *
                     </label>
                     <input
                       type="text"
-                      id="name"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-4 py-3 rounded-lg bg-glass-dark border border-white/10 focus:border-primary-gold focus:ring-1 focus:ring-primary-gold/50 focus:outline-none transition-colors duration-200"
-                      placeholder="Enter your full name"
-                      suppressHydrationWarning
+                      value={formData.firstName}
+                      onChange={(e) => handleInputChange('firstName', e.target.value)}
+                      className={`w-full px-4 py-3 bg-white/5 border rounded-lg focus:ring-2 focus:ring-primary-gold/50 focus:border-primary-gold/50 transition-all duration-300 ${
+                        errors.firstName ? 'border-red-500' : 'border-white/10'
+                      }`}
+                      placeholder="Enter your first name"
                     />
+                    {errors.firstName && (
+                      <p className="text-red-400 text-sm mt-1">{errors.firstName}</p>
+                    )}
                   </div>
-                  
+
                   <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-200 mb-2">
-                      Email Address *
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Last Name *
                     </label>
                     <input
-                      type="email"
-                      id="contact-email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-4 py-3 rounded-lg bg-glass-dark border border-white/10 focus:border-primary-gold focus:ring-1 focus:ring-primary-gold/50 focus:outline-none transition-colors duration-200"
-                      placeholder="Enter your email"
-                      suppressHydrationWarning
+                      type="text"
+                      value={formData.lastName}
+                      onChange={(e) => handleInputChange('lastName', e.target.value)}
+                      className={`w-full px-4 py-3 bg-white/5 border rounded-lg focus:ring-2 focus:ring-primary-gold/50 focus:border-primary-gold/50 transition-all duration-300 ${
+                        errors.lastName ? 'border-red-500' : 'border-white/10'
+                      }`}
+                      placeholder="Enter your last name"
+                    />
+                    {errors.lastName && (
+                      <p className="text-red-400 text-sm mt-1">{errors.lastName}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Email */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Email Address *
+                  </label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    className={`w-full px-4 py-3 bg-white/5 border rounded-lg focus:ring-2 focus:ring-primary-gold/50 focus:border-primary-gold/50 transition-all duration-300 ${
+                      errors.email ? 'border-red-500' : 'border-white/10'
+                    }`}
+                    placeholder="Enter your email address"
+                  />
+                  {errors.email && (
+                    <p className="text-red-400 text-sm mt-1">{errors.email}</p>
+                  )}
+                </div>
+
+                {/* Phone */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Phone Number
+                  </label>
+                  <div className="flex">
+                    <select
+                      value={formData.countryCode}
+                      onChange={(e) => handleInputChange('countryCode', e.target.value)}
+                      className="px-3 py-3 bg-white/5 border border-white/10 rounded-l-lg focus:ring-2 focus:ring-primary-gold/50 focus:border-primary-gold/50 transition-all duration-300"
+                    >
+                      {countryCodes.map((country) => (
+                        <option key={country.code} value={country.code} className="bg-primary-dark">
+                          {country.code} ({country.country})
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => handleInputChange('phone', e.target.value)}
+                      className="flex-1 px-4 py-3 bg-white/5 border border-l-0 border-white/10 rounded-r-lg focus:ring-2 focus:ring-primary-gold/50 focus:border-primary-gold/50 transition-all duration-300"
+                      placeholder="Enter your phone number"
                     />
                   </div>
                 </div>
 
-                {/* Phone and Course Row */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Category and Priority */}
+                <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="phone" className="block text-sm font-medium text-gray-200 mb-2">
-                      Phone Number
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Category
                     </label>
-                    <input
-                      type="tel"
-                      id="phone"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 rounded-lg bg-glass-dark border border-white/10 focus:border-primary-gold focus:ring-1 focus:ring-primary-gold/50 focus:outline-none transition-colors duration-200"
-                      placeholder="Enter your phone number"
-                      suppressHydrationWarning
-                    />
+                    <select
+                      value={formData.category}
+                      onChange={(e) => handleInputChange('category', e.target.value)}
+                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:ring-2 focus:ring-primary-gold/50 focus:border-primary-gold/50 transition-all duration-300"
+                    >
+                      {categories.map((category) => (
+                        <option key={category.value} value={category.value} className="bg-primary-dark">
+                          {category.label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   
                   <div>
-                    <label htmlFor="course" className="block text-sm font-medium text-gray-200 mb-2">
-                      Course Interest
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Priority
                     </label>
                     <select
-                      id="course"
-                      name="course"
-                      value={formData.course}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 rounded-lg bg-glass-dark border border-white/10 focus:border-primary-gold focus:ring-1 focus:ring-primary-gold/50 focus:outline-none transition-colors duration-200 appearance-none"
-                      suppressHydrationWarning
+                      value={formData.priority}
+                      onChange={(e) => handleInputChange('priority', e.target.value)}
+                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:ring-2 focus:ring-primary-gold/50 focus:border-primary-gold/50 transition-all duration-300"
                     >
-                      <option value="">Select a course</option>
-                      <option value="acting">Acting</option>
-                      <option value="dance">Dance</option>
-                      <option value="photography">Photography</option>
-                      <option value="filmmaking">Filmmaking</option>
-                      <option value="modeling">Modeling</option>
-                      <option value="multiple">Multiple Courses</option>
+                      {priorities.map((priority) => (
+                        <option key={priority.value} value={priority.value} className="bg-primary-dark">
+                          {priority.label}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>
 
+                {/* Subject */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Subject *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.subject}
+                    onChange={(e) => handleInputChange('subject', e.target.value)}
+                    className={`w-full px-4 py-3 bg-white/5 border rounded-lg focus:ring-2 focus:ring-primary-gold/50 focus:border-primary-gold/50 transition-all duration-300 ${
+                      errors.subject ? 'border-red-500' : 'border-white/10'
+                    }`}
+                    placeholder="Enter the subject of your message"
+                  />
+                  {errors.subject && (
+                    <p className="text-red-400 text-sm mt-1">{errors.subject}</p>
+                  )}
+                </div>
+
                 {/* Message */}
                 <div>
-                  <label htmlFor="message" className="block text-sm font-medium text-gray-200 mb-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
                     Message *
                   </label>
                   <textarea
-                    id="message"
-                    name="message"
                     value={formData.message}
-                    onChange={handleInputChange}
-                    required
+                    onChange={(e) => handleInputChange('message', e.target.value)}
                     rows={5}
-                    className="w-full px-4 py-3 rounded-lg bg-glass-dark border border-white/10 focus:border-primary-gold focus:ring-1 focus:ring-primary-gold/50 focus:outline-none transition-colors duration-200 resize-none"
+                    className={`w-full px-4 py-3 rounded-lg bg-glass-dark border border-white/10 focus:border-primary-gold focus:ring-1 focus:ring-primary-gold/50 focus:outline-none transition-colors duration-200 resize-none ${
+                      errors.message ? 'border-red-500' : 'border-white/10'
+                    }`}
                     placeholder="Tell us about your goals and any questions you have..."
-                    suppressHydrationWarning
                   />
+                  {errors.message && (
+                    <p className="text-red-400 text-sm mt-1">{errors.message}</p>
+                  )}
                 </div>
 
                 {/* Submit Button */}
@@ -296,12 +446,10 @@ export function ContactSection() {
                   className="w-full"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  suppressHydrationWarning
                 >
                   <button
                     type="submit"
-                    disabled={isSubmitting}
-                    suppressHydrationWarning
+                    disabled={loading}
                     className={cn(
                       'w-full px-8 py-4 text-lg font-semibold rounded-xl',
                       'bg-gradient-gold text-primary-black',
@@ -312,7 +460,7 @@ export function ContactSection() {
                       'flex items-center justify-center space-x-2'
                     )}
                   >
-                    {isSubmitting ? (
+                    {loading ? (
                       <>
                         <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-primary-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

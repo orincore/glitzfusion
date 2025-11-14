@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion'
 import { ArrowRight, Play } from 'lucide-react'
 import { GlassPanel } from '@/components/ui/GlassPanel'
@@ -8,6 +9,7 @@ import { cn, fadeInUp, staggerContainer } from '@/lib/utils'
 
 export function Hero() {
   const containerRef = useRef<HTMLDivElement>(null)
+  const router = useRouter()
   const [mounted, setMounted] = useState(false)
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -142,6 +144,7 @@ export function Hero() {
               )}
               whileHover={{ scale: 1.02, y: -2 }}
               whileTap={{ scale: 0.98 }}
+              onClick={() => router.push('/gallery')}
             >
               <span className="relative z-10 flex items-center space-x-2">
                 <span>Explore the Academy</span>
@@ -188,6 +191,7 @@ export function Hero() {
                 <button 
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer rounded-[inherit]" 
                   aria-label="Watch Our Story"
+                  onClick={() => router.push('/about')}
                 />
               </div>
             </motion.div>

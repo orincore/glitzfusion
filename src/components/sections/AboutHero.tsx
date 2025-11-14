@@ -98,18 +98,6 @@ export function AboutHero() {
           >
             {content.heroDescription || 'At Glitz Fusion, we believe in the transformative power of performing arts. Our mission is to nurture creativity, build confidence, and launch successful careers in the entertainment industry.'}
           </motion.p>
-          
-          <motion.div 
-            variants={fadeIn}
-            className="mt-12 flex flex-col sm:flex-row gap-4 justify-center"
-          >
-            <button className="px-8 py-4 bg-primary-gold hover:bg-amber-400 text-primary-dark font-semibold rounded-lg transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary-gold focus:ring-offset-2 focus:ring-offset-primary-dark">
-              {content.heroButtonPrimary || 'Join Our Community'}
-            </button>
-            <button className="px-8 py-4 border-2 border-primary-gold text-white hover:bg-primary-gold/10 font-semibold rounded-lg transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary-gold focus:ring-offset-2 focus:ring-offset-primary-dark">
-              {content.heroButtonSecondary || 'Watch Our Story'}
-            </button>
-          </motion.div>
         </motion.div>
       </div>
       

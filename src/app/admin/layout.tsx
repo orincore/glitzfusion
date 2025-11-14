@@ -15,7 +15,9 @@ import {
   Mail,
   MessageCircle,
   Star,
-  Briefcase
+  Briefcase,
+  UserCheck,
+  FileText
 } from 'lucide-react'
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 
@@ -49,10 +51,12 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
     { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
     { name: 'About', href: '/admin/about', icon: Info },
     { name: 'Courses', href: '/admin/courses', icon: BookOpen },
+    { name: 'Blog', href: '/admin/blog', icon: FileText },
     { name: 'Gallery', href: '/admin/gallery', icon: Camera },
     { name: 'Admissions', href: '/admin/admissions', icon: GraduationCap },
     { name: 'Testimonials', href: '/admin/testimonials', icon: Star },
     { name: 'Careers', href: '/admin/careers', icon: Briefcase },
+    { name: 'Applications', href: '/admin/applications', icon: UserCheck },
     { name: 'Contacts', href: '/admin/contacts', icon: MessageCircle },
     { name: 'Email Settings', href: '/admin/email', icon: Mail },
   ]
