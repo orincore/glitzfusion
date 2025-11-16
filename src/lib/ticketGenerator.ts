@@ -1,8 +1,23 @@
 import { createCanvas, loadImage, registerFont } from 'canvas';
 import path from 'path';
 
-// Register fonts (you may need to add font files to your project)
-// registerFont(path.join(process.cwd(), 'assets/fonts/Arial.ttf'), { family: 'Arial' });
+// Font configuration with better fallbacks
+// Use system default fonts that should be available in most environments
+const FONT_FAMILY = 'sans-serif';
+
+// Alternative approach: try to use specific fonts if available
+function getFontString(size: number, weight: string = 'normal'): string {
+  // Try different font combinations that are more likely to work
+  const fonts = [
+    'Liberation Sans',
+    'DejaVu Sans', 
+    'Helvetica',
+    'Arial',
+    'sans-serif'
+  ];
+  
+  return `${weight} ${size}px ${fonts.join(', ')}`;
+}
 
 export interface TicketData {
   bookingCode: string;
@@ -40,19 +55,19 @@ export async function generateTicket(
     ctx.textBaseline = 'middle';
 
     // Draw booking code (large, prominent)
-    ctx.font = 'bold 48px Arial, sans-serif';
+    ctx.font = getFontString(48, 'bold');
     ctx.fillText(ticketData.bookingCode, centerX, centerY - 40);
 
     // Draw member name
-    ctx.font = 'bold 32px Arial, sans-serif';
+    ctx.font = getFontString(32, 'bold');
     ctx.fillText(ticketData.memberName, centerX, centerY + 5);
 
     // Draw event title
-    ctx.font = '24px Arial, sans-serif';
+    ctx.font = getFontString(24);
     ctx.fillText(ticketData.eventTitle, centerX, centerY + 40);
 
     // Draw date and slot time
-    ctx.font = '20px Arial, sans-serif';
+    ctx.font = getFontString(20);
     ctx.fillText(`${ticketData.date} • ${ticketData.time}`, centerX, centerY + 75);
     
     // Convert canvas to buffer
@@ -127,26 +142,26 @@ export async function generateDefaultTicket(ticketData: TicketData): Promise<Buf
   const centerY = 200;
   
   // Draw content
-  ctx.font = 'bold 36px Arial, sans-serif';
+  ctx.font = getFontString(36, 'bold');
   ctx.fillText('FusionX EVENT TICKET', centerX, 80);
   
-  ctx.font = 'bold 48px Arial, sans-serif';
+  ctx.font = getFontString(48, 'bold');
   ctx.fillText(ticketData.bookingCode, centerX, centerY - 40);
   
-  ctx.font = 'bold 28px Arial, sans-serif';
+  ctx.font = getFontString(28, 'bold');
   ctx.fillText(ticketData.memberName, centerX, centerY + 10);
   
-  ctx.font = '20px Arial, sans-serif';
+  ctx.font = getFontString(20);
   ctx.fillText(ticketData.eventTitle, centerX, centerY + 50);
   
-  ctx.font = '18px Arial, sans-serif';
+  ctx.font = getFontString(18);
   ctx.fillText(`${ticketData.date} • ${ticketData.time}`, centerX, centerY + 80);
   
-  ctx.font = '16px Arial, sans-serif';
+  ctx.font = getFontString(16);
   ctx.fillText(ticketData.venue, centerX, centerY + 110);
   
   if (ticketData.totalMembers > 1) {
-    ctx.font = '14px Arial, sans-serif';
+    ctx.font = getFontString(14);
     ctx.fillText(
       `Member ${ticketData.memberIndex + 1} of ${ticketData.totalMembers}`,
       centerX,
