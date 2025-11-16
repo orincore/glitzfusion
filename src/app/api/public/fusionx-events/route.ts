@@ -38,8 +38,18 @@ export async function GET(request: NextRequest) {
       id: event._id.toString(),
       title: event.title,
       slug: event.slug,
-      date: event.dateSlots[0]?.date || event.createdAt, // Use first date slot
+      // Primary date/time for simple views
+      date: event.dateSlots[0]?.date || event.createdAt,
       time: event.dateSlots[0]?.timeSlots[0]?.startTime || '',
+      // Full dateSlots with startTime/endTime for booking UI
+      dateSlots: (event.dateSlots || []).map((slot: any) => ({
+        date: slot.date,
+        timeSlots: (slot.timeSlots || []).map((ts: any) => ({
+          startTime: ts.startTime,
+          endTime: ts.endTime,
+          isAvailable: ts.isAvailable,
+        })),
+      })),
       venue: `${event.location.venue}, ${event.location.city}`,
       shortDescription: event.shortDescription,
       longDescription: event.longDescription,

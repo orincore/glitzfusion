@@ -136,6 +136,7 @@ export function formatBookingConfirmation(booking: any) {
     totalAmount: booking.totalAmount,
     memberCount: booking.members.length,
     members: booking.members,
-    primaryContact: booking.primaryContact
+    primaryContact: booking.primaryContact,
+    eventContactPhone: booking.eventContactPhone || booking.primaryContact?.phone
   };
 }

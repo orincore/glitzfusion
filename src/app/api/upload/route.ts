@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    const uploadType = formData.get('type') as string; // 'poster', 'gallery', 'video', 'hero'
+    const uploadType = formData.get('type') as string; // 'poster', 'gallery', 'video', 'hero', 'highlights', 'ticket-template'
     const eventId = formData.get('eventId') as string;
 
     if (!file) {
@@ -43,9 +43,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!uploadType || !['poster', 'gallery', 'video', 'hero', 'highlights'].includes(uploadType)) {
+    if (!uploadType || !['poster', 'gallery', 'video', 'hero', 'highlights', 'ticket-template'].includes(uploadType)) {
       return NextResponse.json(
-        { error: 'Invalid upload type. Must be poster, gallery, video, hero, or highlights' },
+        { error: 'Invalid upload type. Must be poster, gallery, video, hero, highlights, or ticket-template' },
         { status: 400 }
       );
     }
@@ -60,6 +60,7 @@ export async function POST(request: NextRequest) {
 
     switch (uploadType) {
       case 'poster':
+      case 'ticket-template':
         allowedTypes = ALLOWED_IMAGE_TYPES;
         maxSizeMB = MAX_IMAGE_SIZE_MB;
         folder = R2_FOLDERS.POSTERS;

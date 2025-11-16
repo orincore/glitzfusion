@@ -65,6 +65,7 @@ interface EventFormData {
   dynamicPricing: DynamicPricingConfig
   poster?: string
   gallery?: string[]
+  ticketTemplate?: string
 }
 
 interface FusionXEvent extends EventFormData {
@@ -82,6 +83,7 @@ export default function EditFusionXEventPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [uploadingPoster, setUploadingPoster] = useState(false)
+  const [uploadingTicketTemplate, setUploadingTicketTemplate] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -102,19 +104,26 @@ export default function EditFusionXEventPage() {
 
         const data = (await res.json()) as FusionXEvent
         setEvent(data)
+
+        // Normalize dateSlots for form inputs
+        const normalizedDateSlots: DateSlot[] = (data.dateSlots && data.dateSlots.length > 0)
+          ? data.dateSlots.map((slot) => ({
+              date: slot.date ? new Date(slot.date as any).toISOString().slice(0, 10) : '',
+              timeSlots: (slot.timeSlots && slot.timeSlots.length > 0)
+                ? slot.timeSlots
+                : [{ startTime: '18:00', endTime: '23:00', maxCapacity: 100 }]
+            }))
+          : [{
+              date: '',
+              timeSlots: [{ startTime: '18:00', endTime: '23:00', maxCapacity: 100 }]
+            }]
+
         setFormData({
           title: data.title,
           shortDescription: data.shortDescription,
           longDescription: data.longDescription,
           eventType: data.eventType,
-          dateSlots: data.dateSlots || [{
-            date: '',
-            timeSlots: [{
-              startTime: '18:00',
-              endTime: '23:00',
-              maxCapacity: 100
-            }]
-          }],
+          dateSlots: normalizedDateSlots,
           duration: data.duration || 5,
           location: data.location || {
             venue: '',
@@ -150,7 +159,8 @@ export default function EditFusionXEventPage() {
             description: 'Automatic price increase when bookings cross threshold'
           },
           poster: data.poster,
-          gallery: data.gallery || []
+          gallery: data.gallery || [],
+          ticketTemplate: (data as any).ticketTemplate,
         })
       } catch (e) {
         setError('Error loading event')
@@ -193,6 +203,61 @@ export default function EditFusionXEventPage() {
       setError('Error uploading poster')
     } finally {
       setUploadingPoster(false)
+    }
+  }
+
+  const handleTicketTemplateUpload = async (file: File) => {
+    if (!id) return
+    setUploadingTicketTemplate(true)
+    try {
+      const uploadFormData = new FormData()
+      uploadFormData.append('file', file)
+      uploadFormData.append('type', 'ticket-template')
+      uploadFormData.append('eventId', id)
+
+      const token = localStorage.getItem('admin_token')
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: uploadFormData
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        setFormData(prev => prev ? { ...prev, ticketTemplate: result.url } : null)
+      } else {
+        setError('Failed to upload ticket template')
+      }
+    } catch (error) {
+      setError('Error uploading ticket template')
+    } finally {
+      setUploadingTicketTemplate(false)
+    }
+  }
+
+  const handleTicketTemplateRemove = async () => {
+    if (!formData?.ticketTemplate) return
+
+    try {
+      const token = localStorage.getItem('admin_token')
+      const response = await fetch('/api/upload/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ url: formData.ticketTemplate })
+      })
+
+      if (!response.ok) {
+        console.error('Failed to delete ticket template from R2')
+      }
+    } catch (error) {
+      console.error('Error deleting ticket template from R2:', error)
+    } finally {
+      setFormData(prev => prev ? { ...prev, ticketTemplate: undefined } : null)
     }
   }
 
@@ -330,6 +395,117 @@ export default function EditFusionXEventPage() {
             <h1 className="text-2xl font-bold text-white">Edit FusionX Event</h1>
             <p className="mt-1 text-gray-400 text-sm">Update basic details for this event</p>
           </div>
+
+        {/* Ticket Template (Optional) */}
+        <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
+          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <Upload className="h-5 w-5" />
+            Ticket Template (Optional)
+          </h2>
+          <div className="space-y-6">
+            {/* Upload Control */}
+            {formData.ticketTemplate ? (
+              <div className="flex items-start gap-4">
+                <div className="relative">
+                  <img
+                    src={formData.ticketTemplate}
+                    alt="Ticket template"
+                    className="w-48 h-24 object-cover rounded-lg border border-gray-600"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleTicketTemplateRemove}
+                    className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm"
+                  >
+                    ×
+                  </button>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-gray-300 mb-2">Ticket template uploaded successfully!</p>
+                  <p className="text-xs text-gray-500">This will be used as the background for generated tickets in future booking emails. Click × to remove.</p>
+                </div>
+              </div>
+            ) : (
+              <div className="border-2 border-dashed border-gray-600 rounded-lg p-8 text-center">
+                <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-300 mb-2">Upload Ticket Template</p>
+                <p className="text-sm text-gray-500 mb-4">
+                  Optional: Upload a custom ticket background. Recommended: 800x400px, JPG/PNG, Max 5MB
+                </p>
+                <p className="text-xs text-gray-400 mb-4">
+                  If no template is uploaded, a default FusionX ticket design will be used.
+                </p>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) {
+                      handleTicketTemplateUpload(file)
+                    }
+                  }}
+                  className="hidden"
+                  id="ticket-template-upload"
+                  disabled={uploadingTicketTemplate}
+                />
+                <label
+                  htmlFor="ticket-template-upload"
+                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer ${
+                    uploadingTicketTemplate
+                      ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                      : 'bg-blue-500 hover:bg-blue-600 text-white'
+                  }`}
+                >
+                  {uploadingTicketTemplate ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-400 border-t-transparent"></div>
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4" />
+                      Choose Template
+                    </>
+                  )}
+                </label>
+              </div>
+            )}
+
+            {/* Live Ticket Preview (dummy data) */}
+            <div>
+              <p className="text-sm font-semibold text-gray-200 mb-2">Ticket Preview (dummy data)</p>
+              <p className="text-xs text-gray-500 mb-3">
+                This preview mirrors the final printed ticket: only code, name, event, and date/time are printed on top of your template.
+              </p>
+              <div className="relative w-full max-w-2xl aspect-[16/7] rounded-xl border border-gray-700 overflow-hidden bg-gradient-to-br from-amber-100 to-amber-200 mx-auto">
+                {formData.ticketTemplate && (
+                  <img
+                    src={formData.ticketTemplate}
+                    alt="Ticket preview"
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                )}
+
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center text-black translate-y-2">
+                    <p className="text-3xl font-bold mb-2 tracking-[0.18em]">
+                      FX9A22
+                    </p>
+                    <p className="text-xl font-semibold mb-1">
+                      Member Name
+                    </p>
+                    <p className="text-base mb-1">
+                      {formData.title || 'Event Name Preview'}
+                    </p>
+                    <p className="text-sm">
+                      10 Dec 2025 • 12:00 – 16:00
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
         </div>
       </div>
 

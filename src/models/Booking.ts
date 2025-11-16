@@ -58,7 +58,6 @@ const BookingSchema = new Schema<IBooking>({
   bookingCode: {
     type: String,
     required: true,
-    unique: true,
     uppercase: true,
     length: 6,
     match: [/^[A-Z0-9]{6}$/, 'Booking code must be 6 characters of letters and numbers']

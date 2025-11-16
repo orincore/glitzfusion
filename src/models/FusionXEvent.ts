@@ -82,6 +82,7 @@ export interface IFusionXEvent {
   gallery: string[]; // R2 URLs
   videoTrailer?: string; // R2 URL
   highlights: string[]; // R2 URLs for event highlights/recap media
+  ticketTemplate?: string; // R2 URL for ticket background template
   
   // Event Details
   facilities: IFacility[];
@@ -182,7 +183,6 @@ const FusionXEventSchema = new mongoose.Schema({
   slug: { 
     type: String, 
     required: true, 
-    unique: true,
     lowercase: true,
     trim: true
   },
@@ -216,6 +216,7 @@ const FusionXEventSchema = new mongoose.Schema({
   gallery: [{ type: String }],
   videoTrailer: String,
   highlights: [{ type: String }], // Event highlights/recap media
+  ticketTemplate: String, // R2 URL for ticket background template
   
   facilities: [FacilitySchema],
   tags: [{ type: String, trim: true }],
