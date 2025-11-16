@@ -4,7 +4,7 @@ import dbConnect from '@/lib/mongodb';
 import Booking from '@/models/Booking';
 import Payment from '@/models/Payment';
 import { FusionXEvent } from '@/models/FusionXEvent';
-import { sendBookingConfirmationEmail } from '@/lib/emailService';
+import { sendPaymentConfirmationEmail } from '@/lib/emailService';
 import { formatBookingConfirmation } from '@/lib/bookingUtils';
 import { TransactionLogger } from '@/lib/transactionLogger';
 
@@ -226,26 +226,47 @@ export async function POST(request: NextRequest) {
       console.error('Error logging payment success:', logError);
     }
 
-    // Send confirmation emails with invoice and tickets to all members
+    // Send payment confirmation emails with invoice and tickets to all members
     try {
       const bookingData = formatBookingConfirmation(booking);
-      // Add payment information to booking data
-      (bookingData as any).paymentId = razorpay_payment_id;
-      (bookingData as any).paymentMethod = paymentDetails.method;
+      // Add additional booking information
       (bookingData as any).eventContactPhone = event?.contactPhone || booking.primaryContact?.phone;
+      (bookingData as any).venue = event?.location?.address || 'Event Venue';
 
-      // Send emails to all members
+      // Prepare payment data for invoice generation
+      const paymentData = {
+        paymentId: razorpay_payment_id,
+        paymentMethod: paymentDetails.method || 'Online Payment',
+        paymentDate: new Date().toISOString(),
+        amount: payment.amount / 100 // Convert from paise to rupees
+      };
+
+      // Send enhanced emails with invoices to all members
       const emailPromises = booking.members.map((member: any) => 
-        sendBookingConfirmationEmail(member.email, bookingData, event?.ticketTemplate)
+        sendPaymentConfirmationEmail(
+          member.email, 
+          bookingData, 
+          paymentData,
+          event?.ticketTemplate
+        )
       );
-      await Promise.all(emailPromises);
       
-      // Mark email as sent
-      booking.emailSent = true;
-      await booking.save();
+      const emailResults = await Promise.all(emailPromises);
+      
+      // Log email results
+      const successfulEmails = emailResults.filter(result => result.success).length;
+      const failedEmails = emailResults.filter(result => !result.success).length;
+      
+      console.log(`Payment confirmation emails sent: ${successfulEmails} successful, ${failedEmails} failed`);
+      
+      // Mark email as sent if at least one email was successful
+      if (successfulEmails > 0) {
+        booking.emailSent = true;
+        await booking.save();
+      }
 
     } catch (emailError) {
-      console.error('Error sending confirmation emails:', emailError);
+      console.error('Error sending payment confirmation emails:', emailError);
       // Don't fail the payment verification if email fails
       // Just log it for manual follow-up
     }

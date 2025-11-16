@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import { generateTicket, generateDefaultTicket, TicketData } from './ticketGenerator';
+import { generateInvoicePDF, generateInvoiceNumber, formatInvoiceDate, InvoiceData } from './invoiceGenerator';
 
 // Email configuration based on env
 const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
@@ -30,7 +31,160 @@ function getTransporter() {
   return transporter;
 }
 
-// Email templates
+// Enhanced email template with invoice information
+function generatePaymentConfirmationHTML(bookingData: any, paymentData: any) {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>FusionX Payment Confirmation & Invoice</title>
+      <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f8f9fa; }
+        .container { max-width: 650px; margin: 0 auto; background: white; }
+        .header { background: linear-gradient(135deg, #00ff7a, #22c55e); color: white; padding: 40px 30px; text-align: center; }
+        .header h1 { margin: 0; font-size: 32px; font-weight: 700; }
+        .header p { margin: 10px 0 0 0; font-size: 16px; opacity: 0.9; }
+        .content { padding: 40px 30px; }
+        .success-badge { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center; font-weight: 600; }
+        .booking-code { font-size: 28px; font-weight: bold; color: #00ff7a; text-align: center; margin: 30px 0; padding: 20px; background: #000; border-radius: 12px; letter-spacing: 2px; }
+        .section { background: #f8f9fa; padding: 25px; border-radius: 12px; margin: 25px 0; border-left: 4px solid #00ff7a; }
+        .section h3 { margin: 0 0 20px 0; color: #1a1a1a; font-size: 18px; font-weight: 600; }
+        .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .detail-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #e9ecef; }
+        .detail-item:last-child { border-bottom: none; }
+        .detail-label { font-weight: 600; color: #495057; }
+        .detail-value { color: #1a1a1a; font-weight: 500; }
+        .members { margin-top: 20px; }
+        .member { background: white; padding: 15px; margin: 10px 0; border-radius: 8px; border: 1px solid #e9ecef; }
+        .member-name { font-weight: 600; color: #1a1a1a; margin-bottom: 5px; }
+        .member-contact { font-size: 14px; color: #6c757d; }
+        .payment-summary { background: linear-gradient(135deg, #1a1a1a, #2d2d2d); color: white; padding: 25px; border-radius: 12px; margin: 25px 0; }
+        .payment-summary h3 { margin: 0 0 20px 0; color: #00ff7a; }
+        .amount-row { display: flex; justify-content: space-between; padding: 8px 0; }
+        .total-amount { font-size: 24px; font-weight: bold; color: #00ff7a; border-top: 2px solid #00ff7a; padding-top: 15px; margin-top: 15px; }
+        .instructions { background: #fff3cd; border: 1px solid #ffeaa7; padding: 20px; border-radius: 8px; margin: 25px 0; }
+        .instructions h4 { margin: 0 0 15px 0; color: #856404; }
+        .instructions ul { margin: 0; padding-left: 20px; }
+        .instructions li { margin: 8px 0; }
+        .footer { background: #f8f9fa; padding: 30px; text-align: center; color: #6c757d; font-size: 14px; border-top: 1px solid #e9ecef; }
+        .footer p { margin: 5px 0; }
+        .invoice-info { background: #e7f3ff; border: 1px solid #b3d9ff; padding: 15px; border-radius: 8px; margin: 20px 0; }
+        .invoice-info strong { color: #0056b3; }
+        @media (max-width: 600px) {
+          .detail-grid { grid-template-columns: 1fr; }
+          .container { margin: 0; }
+          .content { padding: 20px; }
+          .header { padding: 30px 20px; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🎉 Payment Successful!</h1>
+          <p>Your FusionX event booking has been confirmed</p>
+        </div>
+        
+        <div class="content">
+          <div class="success-badge">
+            ✅ Payment processed successfully • Invoice generated • Tickets ready
+          </div>
+          
+          <div class="booking-code">
+            ${bookingData.bookingCode}
+          </div>
+          
+          <div class="section">
+            <h3>📅 Event Details</h3>
+            <div class="detail-item">
+              <span class="detail-label">Event:</span>
+              <span class="detail-value">${bookingData.eventTitle}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Date:</span>
+              <span class="detail-value">${bookingData.date}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Time:</span>
+              <span class="detail-value">${bookingData.time}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Pricing Tier:</span>
+              <span class="detail-value">${bookingData.pricing}</span>
+            </div>
+            ${bookingData.venue ? `
+            <div class="detail-item">
+              <span class="detail-label">Venue:</span>
+              <span class="detail-value">${bookingData.venue}</span>
+            </div>
+            ` : ''}
+          </div>
+
+          <div class="payment-summary">
+            <h3>💳 Payment Summary</h3>
+            <div class="amount-row">
+              <span>Event Booking (${bookingData.memberCount} ${bookingData.memberCount === 1 ? 'person' : 'people'})</span>
+              <span>₹${bookingData.totalAmount.toLocaleString()}</span>
+            </div>
+            <div class="amount-row total-amount">
+              <span>Total Paid</span>
+              <span>₹${bookingData.totalAmount.toLocaleString()}</span>
+            </div>
+            <div style="margin-top: 15px; font-size: 14px; opacity: 0.8;">
+              Payment ID: ${paymentData.paymentId}<br>
+              Method: ${paymentData.paymentMethod}<br>
+              Date: ${paymentData.paymentDate}
+            </div>
+          </div>
+
+          <div class="invoice-info">
+            <strong>📄 Invoice Details:</strong><br>
+            Invoice Number: ${paymentData.invoiceNumber}<br>
+            Your detailed invoice is attached as a PDF to this email.
+          </div>
+
+          <div class="section">
+            <h3>👥 Registered Members</h3>
+            <div class="members">
+              ${bookingData.members.map((member: any, index: number) => `
+                <div class="member">
+                  <div class="member-name">
+                    ${index === 0 ? '👤 Primary Contact: ' : `Member ${index + 1}: `}${member.name}
+                  </div>
+                  <div class="member-contact">
+                    📧 ${member.email} • 📞 ${member.phone}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="instructions">
+            <h4>📋 Important Instructions:</h4>
+            <ul>
+              <li><strong>Save your booking code:</strong> ${bookingData.bookingCode}</li>
+              <li><strong>Bring your ticket:</strong> Present the attached ticket at the event entrance</li>
+              <li><strong>Valid ID required:</strong> All members must carry government-issued photo ID</li>
+              <li><strong>Arrive early:</strong> Please arrive 30 minutes before the event start time</li>
+              <li><strong>Invoice:</strong> Keep the attached invoice for your records</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="footer">
+          <p><strong>FusionX Events</strong> by GlitzFusion Studios</p>
+          <p>📧 events@glitzfusion.in • 📞 ${bookingData.eventContactPhone || '+91-XXXXXXXXXX'}</p>
+          <p>Thank you for choosing FusionX Events! We look forward to seeing you at the event.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+// Original booking confirmation template (for non-payment scenarios)
 function generateBookingConfirmationHTML(bookingData: any) {
   return `
     <!DOCTYPE html>
@@ -312,6 +466,183 @@ export async function sendWelcomeEmail(welcomeData: {
   } catch (error) {
     console.error('Error sending welcome email:', error);
     throw error;
+  }
+}
+
+// Send payment confirmation email with invoice and tickets
+export async function sendPaymentConfirmationEmail(
+  email: string, 
+  bookingData: any, 
+  paymentData: {
+    paymentId: string;
+    paymentMethod: string;
+    paymentDate: string;
+    amount: number;
+  },
+  ticketTemplateUrl?: string
+) {
+  try {
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      console.warn('SMTP credentials not configured. Email not sent.');
+      return { success: false, error: 'SMTP not configured' };
+    }
+
+    const transporter = getTransporter();
+    const fromAddress = process.env.SMTP_FROM || process.env.SMTP_USER || '';
+
+    // Generate invoice
+    const invoiceNumber = generateInvoiceNumber(bookingData.bookingCode, paymentData.paymentId);
+    const invoiceDate = formatInvoiceDate(new Date());
+    
+    const member = bookingData.members.find((m: any) => m.email === email) || bookingData.members[0];
+    
+    const invoiceData: InvoiceData = {
+      invoiceNumber,
+      invoiceDate,
+      paymentId: paymentData.paymentId,
+      paymentMethod: paymentData.paymentMethod,
+      paymentDate: paymentData.paymentDate,
+      bookingCode: bookingData.bookingCode,
+      eventTitle: bookingData.eventTitle,
+      eventDate: bookingData.date,
+      eventTime: bookingData.time,
+      venue: bookingData.venue,
+      customerName: member.name,
+      customerEmail: member.email,
+      customerPhone: member.phone,
+      subtotal: paymentData.amount,
+      totalAmount: paymentData.amount,
+      members: bookingData.members,
+      notes: `Thank you for booking with FusionX Events! Present your booking code ${bookingData.bookingCode} at the event entrance.`
+    };
+
+    // Generate invoice PDF
+    let invoicePDF: Buffer | null = null;
+    try {
+      invoicePDF = await generateInvoicePDF(invoiceData);
+    } catch (invoiceError) {
+      console.error('Error generating invoice PDF:', invoiceError);
+    }
+
+    // Generate ticket for this recipient
+    let ticketBuffer: Buffer | null = null;
+    let ticketMemberName = '';
+
+    try {
+      if (member) {
+        ticketMemberName = member.name;
+        const ticketData: TicketData = {
+          bookingCode: bookingData.bookingCode,
+          memberName: member.name,
+          eventTitle: bookingData.eventTitle,
+          date: bookingData.date,
+          time: bookingData.time,
+          venue: bookingData.venue || 'Event Venue',
+          memberIndex: 0,
+          totalMembers: bookingData.members.length,
+        };
+
+        ticketBuffer = ticketTemplateUrl
+          ? await generateTicket(ticketTemplateUrl, ticketData)
+          : await generateDefaultTicket(ticketData);
+      }
+    } catch (ticketError) {
+      console.error('Error generating ticket:', ticketError);
+      ticketBuffer = null;
+    }
+
+    // Prepare attachments
+    const attachments: any[] = [];
+    
+    // Add invoice PDF
+    if (invoicePDF) {
+      attachments.push({
+        filename: `FusionX-Invoice-${invoiceNumber}.pdf`,
+        content: invoicePDF,
+        contentType: 'application/pdf',
+      });
+    }
+
+    // Add ticket image (inline)
+    if (ticketBuffer) {
+      attachments.push({
+        filename: `FusionX-Ticket-${bookingData.bookingCode}-${ticketMemberName.replace(/\s+/g, '_')}.png`,
+        content: ticketBuffer,
+        contentType: 'image/png',
+        cid: 'ticket-inline',
+      });
+    }
+
+    // Enhanced payment data for template
+    const enhancedPaymentData = {
+      ...paymentData,
+      invoiceNumber,
+      paymentDate: formatInvoiceDate(new Date(paymentData.paymentDate))
+    };
+
+    const baseHtml = generatePaymentConfirmationHTML(bookingData, enhancedPaymentData);
+    const htmlWithTicket = ticketBuffer
+      ? `${baseHtml}
+        <div style="margin-top:30px; text-align:center; padding: 20px; background: #f8f9fa; border-radius: 12px;">
+          <h3 style="color: #1a1a1a; margin-bottom: 15px;">🎫 Your Event Ticket</h3>
+          <p style="font-size:14px;color:#6c757d;margin-bottom:15px;">
+            Present this ticket at the event entrance for quick entry
+          </p>
+          <img src="cid:ticket-inline" alt="FusionX Event Ticket" style="max-width:100%;border-radius:12px;box-shadow: 0 4px 12px rgba(0,0,0,0.1);" />
+        </div>
+      `
+      : baseHtml;
+
+    const mailOptions = {
+      from: {
+        name: 'FusionX Events',
+        address: fromAddress,
+      },
+      to: email,
+      subject: `🎉 Payment Confirmed & Invoice - ${bookingData.bookingCode}`,
+      html: htmlWithTicket,
+      text: `
+        FusionX Payment Confirmation & Invoice
+        
+        Payment Successful! ✅
+        
+        Booking Code: ${bookingData.bookingCode}
+        Invoice Number: ${invoiceNumber}
+        
+        Event: ${bookingData.eventTitle}
+        Date: ${bookingData.date}
+        Time: ${bookingData.time}
+        
+        Payment Details:
+        Payment ID: ${paymentData.paymentId}
+        Method: ${paymentData.paymentMethod}
+        Amount Paid: ₹${paymentData.amount.toLocaleString()}
+        Date: ${paymentData.paymentDate}
+        
+        Your invoice and ticket are attached to this email.
+        Please save your booking code and present it at the event for entry.
+        
+        Thank you for choosing FusionX Events!
+        
+        FusionX Events by GlitzFusion Studios
+        events@glitzfusion.in
+      `,
+      attachments,
+    };
+
+    const result = await transporter.sendMail(mailOptions);
+    console.log('Payment confirmation email sent successfully:', result.messageId);
+    
+    return { 
+      success: true, 
+      messageId: result.messageId, 
+      invoiceGenerated: !!invoicePDF,
+      ticketGenerated: !!ticketBuffer,
+      invoiceNumber 
+    };
+  } catch (error) {
+    console.error('Error sending payment confirmation email:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
 
