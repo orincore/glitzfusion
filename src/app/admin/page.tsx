@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { BookOpen, Image, FileText, Users, Activity, TrendingUp } from 'lucide-react'
+import { BookOpen, Image, FileText, Users, Activity, TrendingUp, UserCheck } from 'lucide-react'
 
 interface DashboardStats {
   courses: number
@@ -9,6 +9,8 @@ interface DashboardStats {
   content: number
   users: number
   fusionxEvents: number
+  totalAttendees: number
+  todayAttendees: number
 }
 
 export default function AdminDashboard() {
@@ -17,7 +19,9 @@ export default function AdminDashboard() {
     media: 0,
     content: 0,
     users: 0,
-    fusionxEvents: 0
+    fusionxEvents: 0,
+    totalAttendees: 0,
+    todayAttendees: 0
   })
   const [isLoading, setIsLoading] = useState(true)
 
@@ -33,18 +37,20 @@ export default function AdminDashboard() {
         'Content-Type': 'application/json'
       }
 
-      const [coursesRes, mediaRes, contentRes, fusionxEventsRes] = await Promise.all([
+      const [coursesRes, mediaRes, contentRes, fusionxEventsRes, attendanceStatsRes] = await Promise.all([
         fetch('/api/courses', { headers }),
         fetch('/api/media', { headers }),
         fetch('/api/content', { headers }),
-        fetch('/api/fusionx-events', { headers })
+        fetch('/api/fusionx-events', { headers }),
+        fetch('/api/admin/attendance/stats', { headers })
       ])
 
-      const [coursesData, mediaData, contentData, fusionxEventsData] = await Promise.all([
+      const [coursesData, mediaData, contentData, fusionxEventsData, attendanceStatsData] = await Promise.all([
         coursesRes.json(),
         mediaRes.json(),
         contentRes.json(),
-        fusionxEventsRes.json()
+        fusionxEventsRes.json(),
+        attendanceStatsRes.json()
       ])
 
       setStats({
@@ -52,7 +58,9 @@ export default function AdminDashboard() {
         media: mediaData.media?.length || 0,
         content: contentData.length || 0,
         users: 1, // Placeholder
-        fusionxEvents: fusionxEventsData.length || 0
+        fusionxEvents: fusionxEventsData.length || 0,
+        totalAttendees: attendanceStatsData.totalAttendees || 0,
+        todayAttendees: attendanceStatsData.todayAttendees || 0
       })
     } catch (error) {
       console.error('Error fetching stats:', error)
@@ -63,23 +71,23 @@ export default function AdminDashboard() {
 
   const statCards = [
     {
-      name: 'Total Courses',
-      value: stats.courses,
-      icon: BookOpen,
+      name: 'FusionX Events',
+      value: stats.fusionxEvents,
+      icon: Activity,
       color: 'bg-blue-500',
       change: '+2.5%'
     },
     {
-      name: 'Media Files',
-      value: stats.media,
-      icon: Image,
+      name: 'Total Attendees',
+      value: stats.totalAttendees,
+      icon: UserCheck,
       color: 'bg-green-500',
       change: '+12.3%'
     },
     {
-      name: 'Content Items',
-      value: stats.content,
-      icon: FileText,
+      name: 'Today Attendees',
+      value: stats.todayAttendees,
+      icon: Users,
       color: 'bg-purple-500',
       change: '+5.1%'
     },
@@ -149,38 +157,38 @@ export default function AdminDashboard() {
           <h3 className="text-lg leading-6 font-medium text-white">Quick Actions</h3>
           <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <a
-              href="/admin/courses"
+              href="/admin/fusionx-events"
               className="bg-gray-700 hover:bg-gray-600 p-4 rounded-lg border border-gray-600 transition-colors"
             >
               <div className="flex items-center">
-                <BookOpen className="h-8 w-8 text-blue-400" />
+                <Activity className="h-8 w-8 text-blue-400" />
                 <div className="ml-4">
-                  <h4 className="text-white font-medium">Manage Courses</h4>
-                  <p className="text-gray-400 text-sm">Add, edit, or remove courses</p>
+                  <h4 className="text-white font-medium">FusionX Events</h4>
+                  <p className="text-gray-400 text-sm">Manage events and bookings</p>
                 </div>
               </div>
             </a>
             <a
-              href="/admin/media"
+              href="/admin/attendance"
               className="bg-gray-700 hover:bg-gray-600 p-4 rounded-lg border border-gray-600 transition-colors"
             >
               <div className="flex items-center">
-                <Image className="h-8 w-8 text-green-400" />
+                <UserCheck className="h-8 w-8 text-green-400" />
                 <div className="ml-4">
-                  <h4 className="text-white font-medium">Media Library</h4>
-                  <p className="text-gray-400 text-sm">Upload and organize media files</p>
+                  <h4 className="text-white font-medium">Attendance</h4>
+                  <p className="text-gray-400 text-sm">View and manage event attendance</p>
                 </div>
               </div>
             </a>
             <a
-              href="/admin/content"
+              href="/admin/booking-analytics"
               className="bg-gray-700 hover:bg-gray-600 p-4 rounded-lg border border-gray-600 transition-colors"
             >
               <div className="flex items-center">
-                <FileText className="h-8 w-8 text-purple-400" />
+                <TrendingUp className="h-8 w-8 text-purple-400" />
                 <div className="ml-4">
-                  <h4 className="text-white font-medium">Content Management</h4>
-                  <p className="text-gray-400 text-sm">Edit website content</p>
+                  <h4 className="text-white font-medium">Analytics</h4>
+                  <p className="text-gray-400 text-sm">View booking and revenue analytics</p>
                 </div>
               </div>
             </a>

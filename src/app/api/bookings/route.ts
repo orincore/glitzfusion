@@ -136,33 +136,23 @@ export async function POST(request: NextRequest) {
 
     await booking.save();
 
-    // Update event booking count
-    await FusionXEvent.findByIdAndUpdate(eventId, {
-      $inc: { totalBookings: members.length }
-    });
-
-    // Format booking data for email and attach event contact phone
-    const bookingData = formatBookingConfirmation(booking);
-    (bookingData as any).eventContactPhone = event.contactPhone || booking.primaryContact?.phone;
-
-    // Send confirmation emails to all members with tickets
+    // Update event pending booking count
     try {
-      const emailPromises = members.map((member: any) => 
-        sendBookingConfirmationEmail(member.email, bookingData, event.ticketTemplate)
-      );
-      await Promise.all(emailPromises);
-      
-      // Mark email as sent
-      await Booking.findByIdAndUpdate(booking._id, { emailSent: true });
-    } catch (emailError) {
-      console.error('Error sending confirmation emails:', emailError);
-      // Don't fail the booking if email fails
+      await FusionXEvent.findByIdAndUpdate(event._id, {
+        $inc: { pendingBookings: 1 }
+      });
+    } catch (eventUpdateError) {
+      console.error('Error updating event pending booking count:', eventUpdateError);
+      // Don't fail booking creation for this
     }
+
+    // NOTE: Don't update totalBookings and revenue yet - only after successful payment
+    // NOTE: Don't send emails yet - only after successful payment
 
     return withCors(NextResponse.json({
       success: true,
       bookingCode,
-      message: 'Booking created successfully',
+      message: 'Booking created successfully. Please proceed with payment.',
       booking: {
         id: booking._id,
         bookingCode,
@@ -170,8 +160,12 @@ export async function POST(request: NextRequest) {
         selectedDate,
         selectedTime,
         totalAmount,
-        memberCount: members.length
-      }
+        memberCount: members.length,
+        paymentStatus: 'pending',
+        status: 'pending'
+      },
+      // Frontend will use this to initiate payment
+      nextStep: 'payment'
     }));
 
   } catch (error) {
@@ -194,11 +188,13 @@ export async function GET(request: NextRequest) {
     if (bookingCode) {
       // Get booking by code
       const booking = await Booking.findOne({ bookingCode }).populate('eventId');
-      if (!booking) {
-        return NextResponse.json(
-          { error: 'Booking not found' },
+
+      // Only treat booking codes as active if payment is completed
+      if (!booking || booking.paymentStatus !== 'paid') {
+        return withCors(NextResponse.json(
+          { error: 'Booking not found or payment not completed' },
           { status: 404 }
-        );
+        ));
       }
 
       return withCors(NextResponse.json({

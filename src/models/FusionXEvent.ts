@@ -231,9 +231,33 @@ const FusionXEventSchema = new mongoose.Schema({
   },
   isPast: { type: Boolean, default: false },
   
-  totalCapacity: { type: Number, required: true },
-  totalBookings: { type: Number, default: 0 },
-  revenue: { type: Number, default: 0 },
+  totalCapacity: { type: Number },
+  
+  // Tracking and analytics
+  totalBookings: {
+    type: Number,
+    default: 0
+  },
+  totalRevenue: {
+    type: Number,
+    default: 0
+  },
+  paidBookings: {
+    type: Number,
+    default: 0
+  },
+  pendingBookings: {
+    type: Number,
+    default: 0
+  },
+  failedBookings: {
+    type: Number,
+    default: 0
+  },
+  views: {
+    type: Number,
+    default: 0
+  },
   
   metaTitle: String,
   metaDescription: String,

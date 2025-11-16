@@ -265,6 +265,35 @@
   }
 }
 
+/* Validator-specific animations */
+@keyframes animate-reverse {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+.animate-reverse {
+  animation: animate-reverse 1s linear infinite;
+}
+
+/* Custom scrollbar for validator pages */
+.validator-layout ::-webkit-scrollbar {
+  width: 8px;
+}
+.validator-layout ::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.5);
+}
+.validator-layout ::-webkit-scrollbar-thumb {
+  background: rgba(0, 255, 0, 0.3);
+  border-radius: 4px;
+}
+.validator-layout ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 255, 0, 0.5);
+}
+
 /* Utility layer for specific adjustments */
 @layer utilities {
   /* Reduced motion support */

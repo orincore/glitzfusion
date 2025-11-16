@@ -51,10 +51,112 @@ export async function GET(request: NextRequest) {
       .populate('createdBy', 'name email')
       .populate('lastModifiedBy', 'name email');
 
+    // Get actual revenue data from bookings for each event
+    const Booking = (await import('@/models/Booking')).default;
+    
+    console.log('Fetching revenue data for events...');
+    
+    // Quick check: are there any bookings at all in the database?
+    const totalBookingsCount = await Booking.countDocuments();
+    console.log(`Total bookings in database: ${totalBookingsCount}`);
+    
+    const eventsWithRevenue = await Promise.all(events.map(async (event) => {
+      const eventObj = event.toObject();
+      
+      try {
+        // First, let's see if there are any bookings at all for this event
+        // Try both ObjectId and string matching since eventId might be stored differently
+        const allBookings = await Booking.find({ 
+          $or: [
+            { eventId: event._id },
+            { eventId: event._id.toString() }
+          ]
+        }).lean();
+        console.log(`Event ${event.title} (${event._id}): Found ${allBookings.length} total bookings`);
+        
+        if (allBookings.length > 0) {
+          console.log('Booking details:', allBookings.map(b => ({
+            id: b._id,
+            paymentStatus: b.paymentStatus,
+            totalAmount: b.totalAmount,
+            memberCount: b.members?.length || 0
+          })));
+        }
+        
+        // Get aggregated stats
+        const bookingStats = await Booking.aggregate([
+          { 
+            $match: { 
+              $or: [
+                { eventId: event._id },
+                { eventId: event._id.toString() }
+              ]
+            }
+          },
+          {
+            $group: {
+              _id: '$paymentStatus',
+              count: { $sum: 1 },
+              revenue: { $sum: '$totalAmount' },
+              members: { $sum: { $size: '$members' } }
+            }
+          }
+        ]);
+        
+        console.log(`Event ${event.title} aggregation result:`, bookingStats);
+        
+        // Calculate totals
+        let actualRevenue = 0;
+        let actualBookings = 0;
+        let actualMembers = 0;
+        let paidBookings = 0;
+        let pendingBookings = 0;
+        let failedBookings = 0;
+        
+        bookingStats.forEach(stat => {
+          actualBookings += stat.count || 0;
+          
+          if (stat._id === 'paid') {
+            actualRevenue = stat.revenue || 0;
+            paidBookings = stat.count || 0;
+            actualMembers += stat.members || 0;
+          } else if (stat._id === 'pending') {
+            pendingBookings = stat.count || 0;
+          } else if (stat._id === 'failed') {
+            failedBookings = stat.count || 0;
+          }
+        });
+        
+        console.log(`Event ${event.title} final stats: revenue=${actualRevenue}, bookings=${actualBookings}, paid=${paidBookings}`);
+        
+        // Override with real data
+        return {
+          ...eventObj,
+          actualRevenue, // Revenue from paid bookings (in rupees)
+          actualBookings, // Total bookings
+          actualMembers, // Total members from paid bookings
+          paidBookings,
+          pendingBookings,
+          failedBookings,
+        };
+      } catch (error) {
+        console.error(`Error fetching revenue for event ${event.title}:`, error);
+        return {
+          ...eventObj,
+          actualRevenue: 0,
+          actualBookings: 0,
+          actualMembers: 0,
+          paidBookings: 0,
+          pendingBookings: 0,
+          failedBookings: 0,
+        };
+      }
+    }));
+
     const total = await FusionXEvent.countDocuments(query);
 
     return NextResponse.json({
-      events,
+      events: eventsWithRevenue,
       pagination: {
         page,
         limit,

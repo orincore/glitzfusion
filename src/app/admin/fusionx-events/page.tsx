@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Calendar, MapPin, Users, Plus, Edit, Trash2, Eye, Filter } from 'lucide-react'
+import { Calendar, MapPin, Users, Plus, Edit, Trash2, Eye, Filter, DollarSign, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 
 interface FusionXEvent {
@@ -14,7 +14,14 @@ interface FusionXEvent {
   isPast: boolean
   totalCapacity: number
   totalBookings: number
-  revenue: number
+  totalRevenue: number
+  paidBookings: number
+  pendingBookings: number
+  failedBookings: number
+  // Real revenue data from API
+  actualRevenue?: number
+  actualBookings?: number
+  actualMembers?: number
   dateSlots: Array<{
     date: string
     timeSlots: Array<{
@@ -48,6 +55,13 @@ export default function FusionXEventsPage() {
     pages: 0
   })
 
+  // Analytics stats from booking data
+  const [stats, setStats] = useState({
+    totalRevenue: 0,
+    totalBookings: 0,
+    totalMembers: 0,
+  })
+
   useEffect(() => {
     fetchEvents()
   }, [filter, pagination.page])
@@ -75,11 +89,61 @@ export default function FusionXEventsPage() {
       if (response.ok) {
         const data = await response.json()
         setEvents(data.events)
-        setPagination(prev => ({
-          ...prev,
-          total: data.pagination.total,
-          pages: data.pagination.pages
-        }))
+        setPagination(data.pagination)
+
+        // Fetch analytics stats for cards
+        try {
+          const analyticsRes = await fetch('/api/analytics/bookings', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+
+          if (analyticsRes.ok) {
+            const analyticsData = await analyticsRes.json()
+            if (analyticsData.success && analyticsData.data?.analytics?.revenue) {
+              const r = analyticsData.data.analytics.revenue
+              setStats({
+                totalRevenue: r.totalRevenue || 0, // Already in rupees
+                totalBookings: r.totalBookings || 0,
+                totalMembers: r.totalMembers || 0,
+              })
+            } else {
+              // Fallback: calculate from events data if analytics fails
+              const totalRevenue = data.events.reduce((sum: number, event: FusionXEvent) => sum + (event.actualRevenue || 0), 0)
+              const totalBookings = data.events.reduce((sum: number, event: FusionXEvent) => sum + (event.actualBookings || 0), 0)
+              const totalMembers = data.events.reduce((sum: number, event: FusionXEvent) => sum + (event.actualMembers || 0), 0)
+              
+              setStats({
+                totalRevenue,
+                totalBookings,
+                totalMembers,
+              })
+            }
+          } else {
+            // Fallback calculation
+            const totalRevenue = data.events.reduce((sum: number, event: FusionXEvent) => sum + (event.actualRevenue || 0), 0)
+            const totalBookings = data.events.reduce((sum: number, event: FusionXEvent) => sum + (event.actualBookings || 0), 0)
+            const totalMembers = data.events.reduce((sum: number, event: FusionXEvent) => sum + (event.actualMembers || 0), 0)
+            
+            setStats({
+              totalRevenue,
+              totalBookings,
+              totalMembers,
+            })
+          }
+        } catch {
+          // Fallback calculation
+          const totalRevenue = data.events.reduce((sum: number, event: FusionXEvent) => sum + (event.actualRevenue || 0), 0)
+          const totalBookings = data.events.reduce((sum: number, event: FusionXEvent) => sum + (event.actualBookings || 0), 0)
+          const totalMembers = data.events.reduce((sum: number, event: FusionXEvent) => sum + (event.actualMembers || 0), 0)
+          
+          setStats({
+            totalRevenue,
+            totalBookings,
+            totalMembers,
+          })
+        }
       } else {
         console.error('Failed to fetch events')
       }
@@ -146,6 +210,22 @@ export default function FusionXEventsPage() {
     )
   }
 
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 2,
+    }).format((amount || 0) / 100)
+  }
+
+  const formatCurrencyRupees = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 2,
+    }).format(amount || 0)
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -168,6 +248,69 @@ export default function FusionXEventsPage() {
           <Plus className="h-4 w-4" />
           Create Event
         </Link>
+      </div>
+
+      {/* Revenue Statistics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-400">Total Revenue</p>
+              <p className="text-2xl font-bold text-white">
+                {formatCurrencyRupees(stats.totalRevenue)}
+              </p>
+            </div>
+            <DollarSign className="h-8 w-8 text-green-400" />
+          </div>
+        </div>
+
+        <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-400">Total Bookings</p>
+              <p className="text-2xl font-bold text-white">
+                {stats.totalBookings}
+              </p>
+            </div>
+            <Users className="h-8 w-8 text-blue-400" />
+          </div>
+        </div>
+
+        <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-400">Total Members</p>
+              <p className="text-2xl font-bold text-white">
+                {stats.totalMembers}
+              </p>
+            </div>
+            <TrendingUp className="h-8 w-8 text-emerald-400" />
+          </div>
+        </div>
+
+        <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-400">Paid Bookings</p>
+              <p className="text-2xl font-bold text-white">
+                {events.reduce((sum, event) => sum + (event.paidBookings || 0), 0)}
+              </p>
+            </div>
+            <TrendingUp className="h-8 w-8 text-emerald-400" />
+          </div>
+        </div>
+
+        <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-400">Pending Bookings</p>
+              <p className="text-2xl font-bold text-white">
+                {events.reduce((sum, event) => sum + (event.pendingBookings || 0), 0)}
+              </p>
+            </div>
+            <Calendar className="h-8 w-8 text-yellow-400" />
+          </div>
+        </div>
       </div>
 
       {/* Filters */}
@@ -285,7 +428,7 @@ export default function FusionXEventsPage() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm text-gray-300">
-                      ₹{event.revenue.toLocaleString()}
+                      {formatCurrencyRupees(event.actualRevenue || event.totalRevenue || 0)}
                     </div>
                   </td>
                   <td className="px-6 py-4">

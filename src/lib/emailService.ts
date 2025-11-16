@@ -125,6 +125,69 @@ function generateBookingConfirmationHTML(bookingData: any) {
   `;
 }
 
+// Welcome email template for validated attendees
+function generateWelcomeHTML(welcomeData: {
+  memberName: string;
+  eventTitle: string;
+  bookingCode: string;
+  eventDate: string;
+  eventTime: string;
+}) {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Welcome to ${welcomeData.eventTitle}</title>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #00ff7a, #22c55e); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .welcome-message { font-size: 24px; font-weight: bold; color: #00ff7a; text-align: center; margin: 20px 0; }
+        .details { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🎉 Welcome to ${welcomeData.eventTitle}!</h1>
+        </div>
+        <div class="content">
+          <div class="welcome-message">
+            Hello ${welcomeData.memberName}!
+          </div>
+          
+          <p>Your booking code has been successfully validated and you're now checked in for the event!</p>
+          
+          <div class="details">
+            <h3>Event Details:</h3>
+            <p><strong>Event:</strong> ${welcomeData.eventTitle}</p>
+            <p><strong>Date:</strong> ${new Date(welcomeData.eventDate).toLocaleDateString('en-IN', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            })}</p>
+            <p><strong>Time:</strong> ${welcomeData.eventTime}</p>
+            <p><strong>Booking Code:</strong> ${welcomeData.bookingCode}</p>
+          </div>
+          
+          <p>We're excited to have you join us! Please enjoy the event and don't hesitate to reach out to our staff if you need any assistance.</p>
+          
+          <div class="footer">
+            <p>Thank you for choosing FusionX Events!</p>
+            <p>For any queries, contact us at events@glitzfusion.in</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
 // Send booking confirmation email with tickets
 export async function sendBookingConfirmationEmail(email: string, bookingData: any, ticketTemplateUrl?: string) {
   try {
@@ -224,6 +287,34 @@ export async function sendBookingConfirmationEmail(email: string, bookingData: a
 }
 
 // Test email configuration
+// Send welcome email to validated attendee
+export async function sendWelcomeEmail(welcomeData: {
+  memberName: string;
+  memberEmail: string;
+  eventTitle: string;
+  bookingCode: string;
+  eventDate: string;
+  eventTime: string;
+}) {
+  try {
+    const transporter = getTransporter();
+    
+    const mailOptions = {
+      from: `"FusionX Events" <${process.env.SMTP_USER}>`,
+      to: welcomeData.memberEmail,
+      subject: `Welcome to ${welcomeData.eventTitle}! 🎉`,
+      html: generateWelcomeHTML(welcomeData),
+    };
+
+    const result = await transporter.sendMail(mailOptions);
+    console.log(`Welcome email sent to ${welcomeData.memberEmail}:`, result.messageId);
+    return result;
+  } catch (error) {
+    console.error('Error sending welcome email:', error);
+    throw error;
+  }
+}
+
 export async function testEmailConfiguration() {
   try {
     const transporter = getTransporter();

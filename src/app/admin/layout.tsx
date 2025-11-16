@@ -18,7 +18,10 @@ import {
   Briefcase,
   UserCheck,
   FileText,
-  Zap
+  Zap,
+  BarChart3,
+  CreditCard,
+  Users
 } from 'lucide-react'
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 
@@ -51,6 +54,8 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
   const navigation = [
     { name: 'Dashboard', href: '/admin', icon: LayoutDashboard, current: pathname === '/admin' },
     { name: 'FusionX Events', href: '/admin/fusionx-events', icon: Zap, current: pathname.startsWith('/admin/fusionx-events') },
+    { name: 'Attendance', href: '/admin/attendance', icon: Users, current: pathname.startsWith('/admin/attendance') },
+    { name: 'Booking Analytics', href: '/admin/booking-analytics', icon: BarChart3, current: pathname.startsWith('/admin/booking-analytics') },
     { name: 'FusionX Hero Media', href: '/admin/hero-media', icon: Camera, current: pathname.startsWith('/admin/hero-media') },
     { name: 'About', href: '/admin/about', icon: Info },
     { name: 'Courses', href: '/admin/courses', icon: BookOpen },

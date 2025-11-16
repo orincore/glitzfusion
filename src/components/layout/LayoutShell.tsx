@@ -14,8 +14,9 @@ export function LayoutShell({ children }: LayoutShellProps) {
   const pathname = usePathname()
   const isAdminRoute = pathname?.startsWith('/admin')
   const isEditorRoute = pathname?.startsWith('/blog-editor')
+  const isValidatorRoute = pathname?.startsWith('/validator')
 
-  if (isAdminRoute || isEditorRoute) {
+  if (isAdminRoute || isEditorRoute || isValidatorRoute) {
     return <>{children}</>
   }
 
