@@ -1,25 +1,397 @@
 import { createCanvas, loadImage } from 'canvas';
 
-// Completely bypass font system and draw text manually using shapes
-// This approach works in any environment without font dependencies
+// Bitmap-based character rendering - no fonts needed!
+// Each character is drawn using canvas shapes
 
-function drawText(ctx: any, text: string, x: number, y: number, size: number, bold: boolean = false) {
-  // Set basic text properties that work without external fonts
+const CHAR_PATTERNS: { [key: string]: number[][] } = {
+  'A': [
+    [0,1,1,1,0],
+    [1,0,0,0,1],
+    [1,0,0,0,1],
+    [1,1,1,1,1],
+    [1,0,0,0,1],
+    [1,0,0,0,1],
+    [1,0,0,0,1]
+  ],
+  'B': [
+    [1,1,1,1,0],
+    [1,0,0,0,1],
+    [1,0,0,0,1],
+    [1,1,1,1,0],
+    [1,0,0,0,1],
+    [1,0,0,0,1],
+    [1,1,1,1,0]
+  ],
+  'C': [
+    [0,1,1,1,0],
+    [1,0,0,0,1],
+    [1,0,0,0,0],
+    [1,0,0,0,0],
+    [1,0,0,0,0],
+    [1,0,0,0,1],
+    [0,1,1,1,0]
+  ],
+  'D': [
+    [1,1,1,1,0],
+    [1,0,0,0,1],
+    [1,0,0,0,1],
+    [1,0,0,0,1],
+    [1,0,0,0,1],
+    [1,0,0,0,1],
+    [1,1,1,1,0]
+  ],
+  'E': [
+    [1,1,1,1,1],
+    [1,0,0,0,0],
+    [1,0,0,0,0],
+    [1,1,1,1,0],
+    [1,0,0,0,0],
+    [1,0,0,0,0],
+    [1,1,1,1,1]
+  ],
+  'F': [
+    [1,1,1,1,1],
+    [1,0,0,0,0],
+    [1,0,0,0,0],
+    [1,1,1,1,0],
+    [1,0,0,0,0],
+    [1,0,0,0,0],
+    [1,0,0,0,0]
+  ],
+  'G': [
+    [0,1,1,1,0],
+    [1,0,0,0,1],
+    [1,0,0,0,0],
+    [1,0,1,1,1],
+    [1,0,0,0,1],
+    [1,0,0,0,1],
+    [0,1,1,1,0]
+  ],
+  'H': [
+    [1,0,0,0,1],
+    [1,0,0,0,1],
+    [1,0,0,0,1],
+    [1,1,1,1,1],
+    [1,0,0,0,1],
+    [1,0,0,0,1],
+    [1,0,0,0,1]
+  ],
+  'I': [
+    [1,1,1,1,1],
+    [0,0,1,0,0],
+    [0,0,1,0,0],
+    [0,0,1,0,0],
+    [0,0,1,0,0],
+    [0,0,1,0,0],
+    [1,1,1,1,1]
+  ],
+  'J': [
+    [1,1,1,1,1],
+    [0,0,0,1,0],
+    [0,0,0,1,0],
+    [0,0,0,1,0],
+    [0,0,0,1,0],
+    [1,0,0,1,0],
+    [0,1,1,0,0]
+  ],
+  'K': [
+    [1,0,0,0,1],
+    [1,0,0,1,0],
+    [1,0,1,0,0],
+    [1,1,0,0,0],
+    [1,0,1,0,0],
+    [1,0,0,1,0],
+    [1,0,0,0,1]
+  ],
+  'L': [
+    [1,0,0,0,0],
+    [1,0,0,0,0],
+    [1,0,0,0,0],
+    [1,0,0,0,0],
+    [1,0,0,0,0],
+    [1,0,0,0,0],
+    [1,1,1,1,1]
+  ],
+  'M': [
+    [1,0,0,0,1],
+    [1,1,0,1,1],
+    [1,0,1,0,1],
+    [1,0,0,0,1],
+    [1,0,0,0,1],
+    [1,0,0,0,1],
+    [1,0,0,0,1]
+  ],
+  'N': [
+    [1,0,0,0,1],
+    [1,1,0,0,1],
+    [1,0,1,0,1],
+    [1,0,0,1,1],
+    [1,0,0,0,1],
+    [1,0,0,0,1],
+    [1,0,0,0,1]
+  ],
+  'O': [
+    [0,1,1,1,0],
+    [1,0,0,0,1],
+    [1,0,0,0,1],
+    [1,0,0,0,1],
+    [1,0,0,0,1],
+    [1,0,0,0,1],
+    [0,1,1,1,0]
+  ],
+  'P': [
+    [1,1,1,1,0],
+    [1,0,0,0,1],
+    [1,0,0,0,1],
+    [1,1,1,1,0],
+    [1,0,0,0,0],
+    [1,0,0,0,0],
+    [1,0,0,0,0]
+  ],
+  'Q': [
+    [0,1,1,1,0],
+    [1,0,0,0,1],
+    [1,0,0,0,1],
+    [1,0,0,0,1],
+    [1,0,1,0,1],
+    [1,0,0,1,0],
+    [0,1,1,0,1]
+  ],
+  'R': [
+    [1,1,1,1,0],
+    [1,0,0,0,1],
+    [1,0,0,0,1],
+    [1,1,1,1,0],
+    [1,0,1,0,0],
+    [1,0,0,1,0],
+    [1,0,0,0,1]
+  ],
+  'S': [
+    [0,1,1,1,0],
+    [1,0,0,0,1],
+    [1,0,0,0,0],
+    [0,1,1,1,0],
+    [0,0,0,0,1],
+    [1,0,0,0,1],
+    [0,1,1,1,0]
+  ],
+  'T': [
+    [1,1,1,1,1],
+    [0,0,1,0,0],
+    [0,0,1,0,0],
+    [0,0,1,0,0],
+    [0,0,1,0,0],
+    [0,0,1,0,0],
+    [0,0,1,0,0]
+  ],
+  'U': [
+    [1,0,0,0,1],
+    [1,0,0,0,1],
+    [1,0,0,0,1],
+    [1,0,0,0,1],
+    [1,0,0,0,1],
+    [1,0,0,0,1],
+    [0,1,1,1,0]
+  ],
+  'V': [
+    [1,0,0,0,1],
+    [1,0,0,0,1],
+    [1,0,0,0,1],
+    [1,0,0,0,1],
+    [1,0,0,0,1],
+    [0,1,0,1,0],
+    [0,0,1,0,0]
+  ],
+  'W': [
+    [1,0,0,0,1],
+    [1,0,0,0,1],
+    [1,0,0,0,1],
+    [1,0,1,0,1],
+    [1,0,1,0,1],
+    [1,1,0,1,1],
+    [1,0,0,0,1]
+  ],
+  'X': [
+    [1,0,0,0,1],
+    [0,1,0,1,0],
+    [0,0,1,0,0],
+    [0,0,1,0,0],
+    [0,0,1,0,0],
+    [0,1,0,1,0],
+    [1,0,0,0,1]
+  ],
+  'Y': [
+    [1,0,0,0,1],
+    [0,1,0,1,0],
+    [0,0,1,0,0],
+    [0,0,1,0,0],
+    [0,0,1,0,0],
+    [0,0,1,0,0],
+    [0,0,1,0,0]
+  ],
+  'Z': [
+    [1,1,1,1,1],
+    [0,0,0,0,1],
+    [0,0,0,1,0],
+    [0,0,1,0,0],
+    [0,1,0,0,0],
+    [1,0,0,0,0],
+    [1,1,1,1,1]
+  ],
+  '0': [
+    [0,1,1,1,0],
+    [1,0,0,0,1],
+    [1,0,0,1,1],
+    [1,0,1,0,1],
+    [1,1,0,0,1],
+    [1,0,0,0,1],
+    [0,1,1,1,0]
+  ],
+  '1': [
+    [0,0,1,0,0],
+    [0,1,1,0,0],
+    [0,0,1,0,0],
+    [0,0,1,0,0],
+    [0,0,1,0,0],
+    [0,0,1,0,0],
+    [0,1,1,1,0]
+  ],
+  '2': [
+    [0,1,1,1,0],
+    [1,0,0,0,1],
+    [0,0,0,0,1],
+    [0,0,0,1,0],
+    [0,0,1,0,0],
+    [0,1,0,0,0],
+    [1,1,1,1,1]
+  ],
+  '3': [
+    [0,1,1,1,0],
+    [1,0,0,0,1],
+    [0,0,0,0,1],
+    [0,0,1,1,0],
+    [0,0,0,0,1],
+    [1,0,0,0,1],
+    [0,1,1,1,0]
+  ],
+  '4': [
+    [0,0,0,1,0],
+    [0,0,1,1,0],
+    [0,1,0,1,0],
+    [1,0,0,1,0],
+    [1,1,1,1,1],
+    [0,0,0,1,0],
+    [0,0,0,1,0]
+  ],
+  '5': [
+    [1,1,1,1,1],
+    [1,0,0,0,0],
+    [1,1,1,1,0],
+    [0,0,0,0,1],
+    [0,0,0,0,1],
+    [1,0,0,0,1],
+    [0,1,1,1,0]
+  ],
+  '6': [
+    [0,1,1,1,0],
+    [1,0,0,0,1],
+    [1,0,0,0,0],
+    [1,1,1,1,0],
+    [1,0,0,0,1],
+    [1,0,0,0,1],
+    [0,1,1,1,0]
+  ],
+  '7': [
+    [1,1,1,1,1],
+    [0,0,0,0,1],
+    [0,0,0,1,0],
+    [0,0,1,0,0],
+    [0,1,0,0,0],
+    [0,1,0,0,0],
+    [0,1,0,0,0]
+  ],
+  '8': [
+    [0,1,1,1,0],
+    [1,0,0,0,1],
+    [1,0,0,0,1],
+    [0,1,1,1,0],
+    [1,0,0,0,1],
+    [1,0,0,0,1],
+    [0,1,1,1,0]
+  ],
+  '9': [
+    [0,1,1,1,0],
+    [1,0,0,0,1],
+    [1,0,0,0,1],
+    [0,1,1,1,1],
+    [0,0,0,0,1],
+    [1,0,0,0,1],
+    [0,1,1,1,0]
+  ],
+  ' ': [
+    [0,0,0,0,0],
+    [0,0,0,0,0],
+    [0,0,0,0,0],
+    [0,0,0,0,0],
+    [0,0,0,0,0],
+    [0,0,0,0,0],
+    [0,0,0,0,0]
+  ],
+  ':': [
+    [0,0,0,0,0],
+    [0,0,1,0,0],
+    [0,0,1,0,0],
+    [0,0,0,0,0],
+    [0,0,1,0,0],
+    [0,0,1,0,0],
+    [0,0,0,0,0]
+  ],
+  '-': [
+    [0,0,0,0,0],
+    [0,0,0,0,0],
+    [0,0,0,0,0],
+    [1,1,1,1,1],
+    [0,0,0,0,0],
+    [0,0,0,0,0],
+    [0,0,0,0,0]
+  ],
+  '•': [
+    [0,0,0,0,0],
+    [0,0,0,0,0],
+    [0,0,0,0,0],
+    [0,0,1,0,0],
+    [0,0,0,0,0],
+    [0,0,0,0,0],
+    [0,0,0,0,0]
+  ]
+};
+
+function drawBitmapChar(ctx: any, char: string, x: number, y: number, pixelSize: number) {
+  const pattern = CHAR_PATTERNS[char.toUpperCase()] || CHAR_PATTERNS[' '];
+  
   ctx.fillStyle = '#000000';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
   
-  // Use the most basic font specification possible
-  const weight = bold ? 'bold' : 'normal';
-  ctx.font = `${weight} ${size}px serif`;
+  for (let row = 0; row < pattern.length; row++) {
+    for (let col = 0; col < pattern[row].length; col++) {
+      if (pattern[row][col] === 1) {
+        ctx.fillRect(
+          x + col * pixelSize,
+          y + row * pixelSize,
+          pixelSize,
+          pixelSize
+        );
+      }
+    }
+  }
+}
+
+function drawBitmapText(ctx: any, text: string, x: number, y: number, pixelSize: number) {
+  const charWidth = 5 * pixelSize + pixelSize; // 5 pixels wide + 1 pixel spacing
+  const totalWidth = text.length * charWidth;
+  let startX = x - totalWidth / 2;
   
-  // Draw text with stroke for better visibility
-  ctx.strokeStyle = '#000000';
-  ctx.lineWidth = 1;
-  
-  ctx.fillText(text, x, y);
-  if (bold) {
-    ctx.strokeText(text, x, y);
+  for (let i = 0; i < text.length; i++) {
+    drawBitmapChar(ctx, text[i], startX + i * charWidth, y, pixelSize);
   }
 }
 
@@ -81,11 +453,11 @@ export async function generateTicket(
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
 
-    // Draw text using our custom function
-    drawText(ctx, ticketData.bookingCode, centerX, centerY - 40, 48, true);
-    drawText(ctx, ticketData.memberName, centerX, centerY + 5, 32, true);
-    drawText(ctx, ticketData.eventTitle, centerX, centerY + 40, 24, false);
-    drawText(ctx, `${ticketData.date} • ${ticketData.time}`, centerX, centerY + 75, 20, false);
+    // Draw text using bitmap rendering
+    drawBitmapText(ctx, ticketData.bookingCode, centerX, centerY - 40, 4);
+    drawBitmapText(ctx, ticketData.memberName, centerX, centerY + 5, 3);
+    drawBitmapText(ctx, ticketData.eventTitle, centerX, centerY + 40, 2);
+    drawBitmapText(ctx, `${ticketData.date} • ${ticketData.time}`, centerX, centerY + 75, 2);
     
     // Convert canvas to buffer
     return canvas.toBuffer('image/png');
@@ -156,22 +528,21 @@ export async function generateDefaultTicket(ticketData: TicketData): Promise<Buf
   const centerX = 400;
   const centerY = 200;
   
-  // Draw content using our custom text function
-  drawText(ctx, 'FusionX EVENT TICKET', centerX, 80, 36, true);
-  drawText(ctx, ticketData.bookingCode, centerX, centerY - 40, 48, true);
-  drawText(ctx, ticketData.memberName, centerX, centerY + 10, 28, true);
-  drawText(ctx, ticketData.eventTitle, centerX, centerY + 50, 20, false);
-  drawText(ctx, `${ticketData.date} • ${ticketData.time}`, centerX, centerY + 80, 18, false);
-  drawText(ctx, ticketData.venue, centerX, centerY + 110, 16, false);
+  // Draw content using bitmap text rendering
+  drawBitmapText(ctx, 'FUSIONX EVENT TICKET', centerX, 80, 3);
+  drawBitmapText(ctx, ticketData.bookingCode, centerX, centerY - 40, 4);
+  drawBitmapText(ctx, ticketData.memberName, centerX, centerY + 10, 3);
+  drawBitmapText(ctx, ticketData.eventTitle, centerX, centerY + 50, 2);
+  drawBitmapText(ctx, `${ticketData.date} • ${ticketData.time}`, centerX, centerY + 80, 2);
+  drawBitmapText(ctx, ticketData.venue, centerX, centerY + 110, 2);
   
   if (ticketData.totalMembers > 1) {
-    drawText(
+    drawBitmapText(
       ctx,
-      `Member ${ticketData.memberIndex + 1} of ${ticketData.totalMembers}`,
+      `MEMBER ${ticketData.memberIndex + 1} OF ${ticketData.totalMembers}`,
       centerX,
       350,
-      14,
-      false
+      1
     );
   }
   
