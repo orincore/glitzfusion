@@ -1,22 +1,41 @@
 import { createCanvas, loadImage, registerFont } from 'canvas';
 import path from 'path';
 
-// Font configuration with better fallbacks
-// Use system default fonts that should be available in most environments
-const FONT_FAMILY = 'sans-serif';
+// Initialize font configuration to handle Fontconfig errors
+let fontConfigured = false;
 
-// Alternative approach: try to use specific fonts if available
-function getFontString(size: number, weight: string = 'normal'): string {
-  // Try different font combinations that are more likely to work
-  const fonts = [
-    'Liberation Sans',
-    'DejaVu Sans', 
-    'Helvetica',
-    'Arial',
-    'sans-serif'
-  ];
+function initializeFonts() {
+  if (fontConfigured) return;
   
-  return `${weight} ${size}px ${fonts.join(', ')}`;
+  try {
+    // Set environment variables to handle fontconfig issues
+    process.env.FONTCONFIG_PATH = '/dev/null';
+    process.env.FC_CONFIG_FILE = '/dev/null';
+    
+    // Suppress fontconfig warnings by redirecting stderr
+    if (process.stderr && typeof process.stderr.write === 'function') {
+      const originalStderrWrite = process.stderr.write;
+      process.stderr.write = function(chunk: any, encoding?: any, callback?: any) {
+        // Filter out fontconfig error messages
+        if (typeof chunk === 'string' && chunk.includes('Fontconfig')) {
+          return true;
+        }
+        return originalStderrWrite.call(this, chunk, encoding, callback);
+      };
+    }
+    
+    console.log('Font configuration initialized for production environment');
+  } catch (error) {
+    console.warn('Font initialization warning:', error instanceof Error ? error.message : 'Unknown error');
+  }
+  
+  fontConfigured = true;
+}
+
+// Simple font function that works without system fonts
+function getFontString(size: number, weight: string = 'normal'): string {
+  // Use minimal font specification to avoid fontconfig issues
+  return `${weight} ${size}px monospace`;
 }
 
 export interface TicketData {
@@ -35,6 +54,9 @@ export async function generateTicket(
   ticketData: TicketData
 ): Promise<Buffer> {
   try {
+    // Initialize fonts to prevent fontconfig errors
+    initializeFonts();
+    
     // Load the ticket template image
     const templateImage = await loadImage(ticketTemplateUrl);
     
@@ -111,6 +133,9 @@ export async function generateTicketsForBooking(
 
 // Fallback ticket generator when no template is provided
 export async function generateDefaultTicket(ticketData: TicketData): Promise<Buffer> {
+  // Initialize fonts to prevent fontconfig errors
+  initializeFonts();
+  
   // Create a default ticket design
   const canvas = createCanvas(800, 400);
   const ctx = canvas.getContext('2d');
