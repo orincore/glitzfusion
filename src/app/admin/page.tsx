@@ -8,6 +8,7 @@ interface DashboardStats {
   media: number
   content: number
   users: number
+  fusionxEvents: number
 }
 
 export default function AdminDashboard() {
@@ -15,7 +16,8 @@ export default function AdminDashboard() {
     courses: 0,
     media: 0,
     content: 0,
-    users: 0
+    users: 0,
+    fusionxEvents: 0
   })
   const [isLoading, setIsLoading] = useState(true)
 
@@ -31,23 +33,26 @@ export default function AdminDashboard() {
         'Content-Type': 'application/json'
       }
 
-      const [coursesRes, mediaRes, contentRes] = await Promise.all([
+      const [coursesRes, mediaRes, contentRes, fusionxEventsRes] = await Promise.all([
         fetch('/api/courses', { headers }),
         fetch('/api/media', { headers }),
-        fetch('/api/content', { headers })
+        fetch('/api/content', { headers }),
+        fetch('/api/fusionx-events', { headers })
       ])
 
-      const [coursesData, mediaData, contentData] = await Promise.all([
+      const [coursesData, mediaData, contentData, fusionxEventsData] = await Promise.all([
         coursesRes.json(),
         mediaRes.json(),
-        contentRes.json()
+        contentRes.json(),
+        fusionxEventsRes.json()
       ])
 
       setStats({
         courses: coursesData.length || 0,
         media: mediaData.media?.length || 0,
         content: contentData.length || 0,
-        users: 1 // Placeholder
+        users: 1, // Placeholder
+        fusionxEvents: fusionxEventsData.length || 0
       })
     } catch (error) {
       console.error('Error fetching stats:', error)

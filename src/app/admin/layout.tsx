@@ -17,7 +17,8 @@ import {
   Star,
   Briefcase,
   UserCheck,
-  FileText
+  FileText,
+  Zap
 } from 'lucide-react'
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 
@@ -28,7 +29,7 @@ interface AdminLayoutProps {
 function AdminLayoutContent({ children }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { isAuthenticated, isLoading, logout } = useAuth()
-  const pathname = usePathname()
+  const pathname = usePathname() || ''
 
   if (isLoading) {
     return (
@@ -48,7 +49,9 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
 
   // Only include sections that actually exist
   const navigation = [
-    { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+    { name: 'Dashboard', href: '/admin', icon: LayoutDashboard, current: pathname === '/admin' },
+    { name: 'FusionX Events', href: '/admin/fusionx-events', icon: Zap, current: pathname.startsWith('/admin/fusionx-events') },
+    { name: 'FusionX Hero Media', href: '/admin/hero-media', icon: Camera, current: pathname.startsWith('/admin/hero-media') },
     { name: 'About', href: '/admin/about', icon: Info },
     { name: 'Courses', href: '/admin/courses', icon: BookOpen },
     { name: 'Blog', href: '/admin/blog', icon: FileText },
