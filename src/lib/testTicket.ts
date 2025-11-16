@@ -1,5 +1,7 @@
 // Test script to verify ticket generation works without fontconfig errors
 import { generateDefaultTicket, TicketData } from './ticketGenerator';
+import fs from 'fs';
+import path from 'path';
 
 export async function testTicketGeneration(): Promise<boolean> {
   try {
@@ -14,11 +16,21 @@ export async function testTicketGeneration(): Promise<boolean> {
       totalMembers: 1,
     };
 
-    console.log('Testing ticket generation...');
+    console.log('🧪 Testing ticket generation with bundled font...');
     const ticketBuffer = await generateDefaultTicket(testData);
     
     if (ticketBuffer && ticketBuffer.length > 0) {
       console.log('✅ Ticket generation successful! Buffer size:', ticketBuffer.length);
+      
+      // Save test ticket to verify it works
+      try {
+        const testPath = path.join(process.cwd(), 'test-ticket.png');
+        fs.writeFileSync(testPath, ticketBuffer);
+        console.log('💾 Test ticket saved to:', testPath);
+      } catch (saveError) {
+        console.log('⚠️ Could not save test file, but generation worked');
+      }
+      
       return true;
     } else {
       console.log('❌ Ticket generation failed - empty buffer');

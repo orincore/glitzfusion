@@ -1,30 +1,28 @@
 import { createCanvas, loadImage, registerFont } from 'canvas';
 import path from 'path';
 
-// Initialize font configuration to handle Fontconfig errors
+// Initialize font configuration for serverless environments
 let fontConfigured = false;
 
 function initializeFonts() {
   if (fontConfigured) return;
   
   try {
-    // Set environment variables to handle fontconfig issues
+    // Register bundled Arial font for serverless environments
+    const arialPath = require.resolve('@canvas-fonts/arial');
+    registerFont(arialPath, { family: 'Arial' });
+    console.log('✅ Successfully registered bundled Arial font');
+    fontConfigured = true;
+    return;
+  } catch (error) {
+    console.warn('Failed to register bundled font, trying alternatives:', error instanceof Error ? error.message : 'Unknown error');
+  }
+
+  try {
+    // Fallback: Set environment variables to handle fontconfig issues
     process.env.FONTCONFIG_PATH = '/dev/null';
     process.env.FC_CONFIG_FILE = '/dev/null';
-    
-    // Suppress fontconfig warnings by redirecting stderr
-    if (process.stderr && typeof process.stderr.write === 'function') {
-      const originalStderrWrite = process.stderr.write;
-      process.stderr.write = function(chunk: any, encoding?: any, callback?: any) {
-        // Filter out fontconfig error messages
-        if (typeof chunk === 'string' && chunk.includes('Fontconfig')) {
-          return true;
-        }
-        return originalStderrWrite.call(this, chunk, encoding, callback);
-      };
-    }
-    
-    console.log('Font configuration initialized for production environment');
+    console.log('⚠️ Using fallback font configuration');
   } catch (error) {
     console.warn('Font initialization warning:', error instanceof Error ? error.message : 'Unknown error');
   }
@@ -32,10 +30,10 @@ function initializeFonts() {
   fontConfigured = true;
 }
 
-// Simple font function that works without system fonts
+// Font function that uses bundled font
 function getFontString(size: number, weight: string = 'normal'): string {
-  // Use minimal font specification to avoid fontconfig issues
-  return `${weight} ${size}px monospace`;
+  // Try to use the registered Arial font first, fallback to system fonts
+  return `${weight} ${size}px Arial, Helvetica, sans-serif`;
 }
 
 export interface TicketData {
