@@ -2,6 +2,32 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
 
 export function middleware(request: NextRequest) {
+  // Handle CORS for API routes
+  if (request.nextUrl.pathname.startsWith('/api/')) {
+    // Handle preflight requests
+    if (request.method === 'OPTIONS') {
+      return new NextResponse(null, {
+        status: 204,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+          'Access-Control-Allow-Credentials': 'true',
+          'Access-Control-Max-Age': '86400',
+        },
+      });
+    }
+
+    // Add CORS headers to all API responses
+    const response = NextResponse.next();
+    response.headers.set('Access-Control-Allow-Origin', '*');
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    response.headers.set('Access-Control-Allow-Credentials', 'true');
+    
+    return response;
+  }
+
   // Allow access to login page
   if (request.nextUrl.pathname === '/admin/login') {
     return NextResponse.next()
@@ -41,5 +67,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*']
+  matcher: ['/admin/:path*', '/api/:path*']
 }

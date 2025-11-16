@@ -6,9 +6,18 @@ import { generateUniqueBookingCode, validateMemberData, calculateBookingAmount, 
 import { sendBookingConfirmationEmail } from '@/lib/emailService';
 
 function withCors(response: NextResponse) {
-  response.headers.set('Access-Control-Allow-Origin', '*');
-  response.headers.set('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-  response.headers.set('Access-Control-Allow-Headers', 'Content-Type');
+  // Allow specific origins for better security
+  const allowedOrigins = [
+    'https://fusionx.glitzfusion.in',
+    'http://localhost:3000',
+    'https://localhost:3000'
+  ];
+  
+  response.headers.set('Access-Control-Allow-Origin', '*'); // For now, allow all origins
+  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  response.headers.set('Access-Control-Allow-Credentials', 'true');
+  response.headers.set('Access-Control-Max-Age', '86400'); // Cache preflight for 24 hours
   return response;
 }
 

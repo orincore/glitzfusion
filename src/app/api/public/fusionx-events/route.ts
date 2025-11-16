@@ -71,25 +71,27 @@ export async function GET(request: NextRequest) {
       })) || []
     }));
 
-    return NextResponse.json(transformedEvents);
+    return withCors(NextResponse.json(transformedEvents));
 
   } catch (error) {
     console.error('Error fetching public FusionX events:', error);
-    return NextResponse.json(
+    return withCors(NextResponse.json(
       { error: 'Failed to fetch events' },
       { status: 500 }
-    );
+    ));
   }
+}
+
+function withCors(response: NextResponse) {
+  response.headers.set('Access-Control-Allow-Origin', '*');
+  response.headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  response.headers.set('Access-Control-Allow-Credentials', 'true');
+  response.headers.set('Access-Control-Max-Age', '86400');
+  return response;
 }
 
 // OPTIONS for CORS
 export async function OPTIONS() {
-  return new NextResponse(null, {
-    status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
-  });
+  return withCors(new NextResponse(null, { status: 204 }));
 }
