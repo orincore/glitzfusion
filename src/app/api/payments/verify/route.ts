@@ -8,8 +8,36 @@ import { sendBookingConfirmationEmail } from '@/lib/emailService';
 import { formatBookingConfirmation } from '@/lib/bookingUtils';
 import { TransactionLogger } from '@/lib/transactionLogger';
 
-function withCors(response: NextResponse) {
-  response.headers.set('Access-Control-Allow-Origin', '*');
+function withCors(response: NextResponse, request?: NextRequest) {
+  // Production-ready CORS configuration
+  const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'https://www.glitzfusion.in',
+    'https://glitzfusion.in',
+    'https://fusionx.glitzfusion.in'
+  ];
+  
+  // Get the origin from the request
+  const requestOrigin = request?.headers.get('origin');
+  
+  // Determine which origin to allow
+  let allowedOrigin = '*';
+  
+  if (process.env.NODE_ENV === 'production') {
+    // In production, only allow specific origins
+    if (requestOrigin && allowedOrigins.includes(requestOrigin)) {
+      allowedOrigin = requestOrigin;
+    } else {
+      // Default to the main FusionX domain if no match
+      allowedOrigin = 'https://fusionx.glitzfusion.in';
+    }
+  } else {
+    // In development, allow all origins
+    allowedOrigin = '*';
+  }
+    
+  response.headers.set('Access-Control-Allow-Origin', allowedOrigin);
   response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
   response.headers.set('Access-Control-Allow-Credentials', 'true');
@@ -17,8 +45,8 @@ function withCors(response: NextResponse) {
   return response;
 }
 
-export async function OPTIONS() {
-  return withCors(new NextResponse(null, { status: 204 }));
+export async function OPTIONS(request: NextRequest) {
+  return withCors(new NextResponse(null, { status: 204 }), request);
 }
 
 export async function POST(request: NextRequest) {
@@ -35,7 +63,7 @@ export async function POST(request: NextRequest) {
       return withCors(NextResponse.json(
         { success: false, error: 'Missing payment verification data' },
         { status: 400 }
-      ));
+      ), request);
     }
 
     // Connect to database
@@ -47,7 +75,7 @@ export async function POST(request: NextRequest) {
       return withCors(NextResponse.json(
         { success: false, error: 'Payment record not found' },
         { status: 404 }
-      ));
+      ), request);
     }
 
     // Find the booking
@@ -56,7 +84,7 @@ export async function POST(request: NextRequest) {
       return withCors(NextResponse.json(
         { success: false, error: 'Booking not found' },
         { status: 404 }
-      ));
+      ), request);
     }
 
     // Verify payment signature
@@ -103,7 +131,7 @@ export async function POST(request: NextRequest) {
       return withCors(NextResponse.json(
         { success: false, error: 'Payment verification failed' },
         { status: 400 }
-      ));
+      ), request);
     }
 
     // Get payment details from Razorpay
@@ -118,7 +146,7 @@ export async function POST(request: NextRequest) {
       return withCors(NextResponse.json(
         { success: false, error: 'Payment verification failed' },
         { status: 500 }
-      ));
+      ), request);
     }
 
     const paymentDetails = paymentDetailsResult.payment;
@@ -137,7 +165,7 @@ export async function POST(request: NextRequest) {
       return withCors(NextResponse.json(
         { success: false, error: `Payment not successful. Status: ${paymentDetails.status}` },
         { status: 400 }
-      ));
+      ), request);
     }
 
     // Payment is successful - update records
@@ -228,7 +256,7 @@ export async function POST(request: NextRequest) {
       bookingCode: booking.bookingCode,
       paymentId: razorpay_payment_id,
       amount: payment.amount / 100, // Convert back to rupees
-    }));
+    }), request);
 
   } catch (error) {
     console.error('Error verifying payment:', error);
@@ -255,6 +283,6 @@ export async function POST(request: NextRequest) {
         error: error instanceof Error ? error.message : 'Internal server error' 
       },
       { status: 500 }
-    ));
+    ), request);
   }
 }

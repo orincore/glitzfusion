@@ -5,21 +5,36 @@ import Booking from '@/models/Booking';
 import Payment from '@/models/Payment';
 import { TransactionLogger } from '@/lib/transactionLogger';
 
-function withCors(response: NextResponse) {
+function withCors(response: NextResponse, request?: NextRequest) {
   // Production-ready CORS configuration
   const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
     'http://localhost:3000',
     'http://localhost:3001',
     'https://www.glitzfusion.in',
-    'https://glitzfusion.in'
+    'https://glitzfusion.in',
+    'https://fusionx.glitzfusion.in'
   ];
   
-  // In production, use specific origins instead of '*'
-  const origin = process.env.NODE_ENV === 'production' 
-    ? allowedOrigins[0] // Use first allowed origin in production
-    : '*'; // Allow all in development
+  // Get the origin from the request
+  const requestOrigin = request?.headers.get('origin');
+  
+  // Determine which origin to allow
+  let allowedOrigin = '*';
+  
+  if (process.env.NODE_ENV === 'production') {
+    // In production, only allow specific origins
+    if (requestOrigin && allowedOrigins.includes(requestOrigin)) {
+      allowedOrigin = requestOrigin;
+    } else {
+      // Default to the main FusionX domain if no match
+      allowedOrigin = 'https://fusionx.glitzfusion.in';
+    }
+  } else {
+    // In development, allow all origins
+    allowedOrigin = '*';
+  }
     
-  response.headers.set('Access-Control-Allow-Origin', origin);
+  response.headers.set('Access-Control-Allow-Origin', allowedOrigin);
   response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
   response.headers.set('Access-Control-Allow-Credentials', 'true');
@@ -27,8 +42,8 @@ function withCors(response: NextResponse) {
   return response;
 }
 
-export async function OPTIONS() {
-  return withCors(new NextResponse(null, { status: 204 }));
+export async function OPTIONS(request: NextRequest) {
+  return withCors(new NextResponse(null, { status: 204 }), request);
 }
 
 export async function POST(request: NextRequest) {
@@ -40,7 +55,7 @@ export async function POST(request: NextRequest) {
       return withCors(NextResponse.json(
         { success: false, error: 'Booking ID is required' },
         { status: 400 }
-      ));
+      ), request);
     }
 
     // Connect to database
@@ -52,7 +67,7 @@ export async function POST(request: NextRequest) {
       return withCors(NextResponse.json(
         { success: false, error: 'Booking not found' },
         { status: 404 }
-      ));
+      ), request);
     }
 
     // Check if booking is already paid
@@ -60,7 +75,7 @@ export async function POST(request: NextRequest) {
       return withCors(NextResponse.json(
         { success: false, error: 'Booking is already paid' },
         { status: 400 }
-      ));
+      ), request);
     }
 
     // Check if there's already a pending payment for this booking
@@ -78,7 +93,7 @@ export async function POST(request: NextRequest) {
         currency: existingPayment.currency,
         bookingCode: booking.bookingCode,
         eventTitle: booking.eventTitle,
-      }));
+      }), request);
     }
 
     // Create new payment order
@@ -100,7 +115,7 @@ export async function POST(request: NextRequest) {
       return withCors(NextResponse.json(
         { success: false, error: orderResult.error || 'Failed to create order' },
         { status: 500 }
-      ));
+      ), request);
     }
 
     // Save payment record
@@ -151,7 +166,7 @@ export async function POST(request: NextRequest) {
       bookingCode: booking.bookingCode,
       eventTitle: booking.eventTitle,
       key: process.env.RAZORPAY_KEY_ID, // Frontend needs this
-    }));
+    }), request);
 
   } catch (error) {
     console.error('Error creating payment order:', error);
@@ -161,6 +176,6 @@ export async function POST(request: NextRequest) {
         error: error instanceof Error ? error.message : 'Internal server error' 
       },
       { status: 500 }
-    ));
+    ), request);
   }
 }

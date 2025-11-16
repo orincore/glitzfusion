@@ -5,24 +5,45 @@ import { FusionXEvent } from '@/models/FusionXEvent';
 import { generateUniqueBookingCode, validateMemberData, calculateBookingAmount, formatBookingConfirmation } from '@/lib/bookingUtils';
 import { sendBookingConfirmationEmail } from '@/lib/emailService';
 
-function withCors(response: NextResponse) {
-  // Allow specific origins for better security
-  const allowedOrigins = [
-    'https://fusionx.glitzfusion.in',
+function withCors(response: NextResponse, request?: NextRequest) {
+  // Production-ready CORS configuration
+  const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
     'http://localhost:3000',
-    'https://localhost:3000'
+    'http://localhost:3001',
+    'https://www.glitzfusion.in',
+    'https://glitzfusion.in',
+    'https://fusionx.glitzfusion.in'
   ];
   
-  response.headers.set('Access-Control-Allow-Origin', '*'); // For now, allow all origins
+  // Get the origin from the request
+  const requestOrigin = request?.headers.get('origin');
+  
+  // Determine which origin to allow
+  let allowedOrigin = '*';
+  
+  if (process.env.NODE_ENV === 'production') {
+    // In production, only allow specific origins
+    if (requestOrigin && allowedOrigins.includes(requestOrigin)) {
+      allowedOrigin = requestOrigin;
+    } else {
+      // Default to the main FusionX domain if no match
+      allowedOrigin = 'https://fusionx.glitzfusion.in';
+    }
+  } else {
+    // In development, allow all origins
+    allowedOrigin = '*';
+  }
+    
+  response.headers.set('Access-Control-Allow-Origin', allowedOrigin);
   response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
   response.headers.set('Access-Control-Allow-Credentials', 'true');
-  response.headers.set('Access-Control-Max-Age', '86400'); // Cache preflight for 24 hours
+  response.headers.set('Access-Control-Max-Age', '86400');
   return response;
 }
 
-export async function OPTIONS() {
-  return withCors(new NextResponse(null, { status: 204 }));
+export async function OPTIONS(request: NextRequest) {
+  return withCors(new NextResponse(null, { status: 204 }), request);
 }
 
 export async function POST(request: NextRequest) {
@@ -166,14 +187,14 @@ export async function POST(request: NextRequest) {
       },
       // Frontend will use this to initiate payment
       nextStep: 'payment'
-    }));
+    }), request);
 
   } catch (error) {
     console.error('Booking creation error:', error);
     return withCors(NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
-    ));
+    ), request);
   }
 }
 
@@ -194,7 +215,7 @@ export async function GET(request: NextRequest) {
         return withCors(NextResponse.json(
           { error: 'Booking not found or payment not completed' },
           { status: 404 }
-        ));
+        ), request);
       }
 
       return withCors(NextResponse.json({
@@ -209,7 +230,7 @@ export async function GET(request: NextRequest) {
           members: booking.members,
           createdAt: booking.createdAt
         }
-      }));
+      }), request);
     }
 
     if (email) {
@@ -230,19 +251,19 @@ export async function GET(request: NextRequest) {
           totalAmount: booking.totalAmount,
           createdAt: booking.createdAt
         }))
-      }));
+      }), request);
     }
 
     return withCors(NextResponse.json(
       { error: 'Missing booking code or email parameter' },
       { status: 400 }
-    ));
+    ), request);
 
   } catch (error) {
     console.error('Booking retrieval error:', error);
     return withCors(NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
-    ));
+    ), request);
   }
 }
