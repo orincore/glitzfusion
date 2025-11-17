@@ -1,29 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import { sendOTPEmail } from '@/lib/emailService';
-
-// In-memory OTP storage (in production, use Redis or database)
-// Use global variable to persist across hot reloads in development
-declare global {
-  var otpStore: Map<string, { otp: string; expiresAt: number; attempts: number }> | undefined;
-}
-
-const otpStore = globalThis.otpStore || new Map<string, { otp: string; expiresAt: number; attempts: number }>();
-if (process.env.NODE_ENV === 'development') {
-  globalThis.otpStore = otpStore;
-}
-
-// Clean expired OTPs every 5 minutes (only set up once)
-if (!globalThis.otpStore) {
-  setInterval(() => {
-    const now = Date.now();
-    for (const [email, data] of otpStore.entries()) {
-      if (data.expiresAt < now) {
-        otpStore.delete(email);
-      }
-    }
-  }, 5 * 60 * 1000);
-}
+import Otp from '@/models/Otp';
+import bcrypt from 'bcryptjs';
 
 function withCors(response: NextResponse, request?: NextRequest) {
   const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
@@ -84,10 +63,10 @@ export async function POST(request: NextRequest) {
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    // Check if OTP was recently sent (rate limiting)
-    const existingOTP = otpStore.get(normalizedEmail);
-    if (existingOTP && existingOTP.expiresAt > Date.now()) {
-      const timeLeft = Math.ceil((existingOTP.expiresAt - Date.now()) / 1000);
+    // Check if OTP was recently sent (rate limiting) using DB
+    const existingRecord = await Otp.findOne({ email: normalizedEmail });
+    if (existingRecord && existingRecord.expiresAt.getTime() > Date.now()) {
+      const timeLeft = Math.ceil((existingRecord.expiresAt.getTime() - Date.now()) / 1000);
       if (timeLeft > 240) { // If more than 4 minutes left, don't send new OTP
         return withCors(NextResponse.json(
           { error: `Please wait ${timeLeft} seconds before requesting a new OTP` },
@@ -98,14 +77,18 @@ export async function POST(request: NextRequest) {
 
     // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = Date.now() + (5 * 60 * 1000); // 5 minutes
+    const expiresAtDate = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
-    // Store OTP
-    otpStore.set(normalizedEmail, {
-      otp,
-      expiresAt,
-      attempts: 0
-    });
+    // Hash OTP before storing (salted, non-reversible)
+    const saltRounds = 10;
+    const hashedOtp = await bcrypt.hash(otp, saltRounds);
+
+    // Upsert OTP record in DB (one active OTP per email)
+    await Otp.findOneAndUpdate(
+      { email: normalizedEmail },
+      { otp: hashedOtp, expiresAt: expiresAtDate, attempts: 0 },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
 
     // Send OTP email
     try {

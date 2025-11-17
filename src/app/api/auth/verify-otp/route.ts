@@ -1,17 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
-
-// This should match the otpStore from send-otp route
-// In production, use Redis or database for shared storage
-declare global {
-  var otpStore: Map<string, { otp: string; expiresAt: number; attempts: number }> | undefined;
-}
-
-// Use global variable to persist across hot reloads in development
-const otpStore = globalThis.otpStore || new Map<string, { otp: string; expiresAt: number; attempts: number }>();
-if (process.env.NODE_ENV === 'development') {
-  globalThis.otpStore = otpStore;
-}
+import Otp from '@/models/Otp';
+import bcrypt from 'bcryptjs';
 
 function withCors(response: NextResponse, request?: NextRequest) {
   const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
@@ -64,10 +54,10 @@ export async function POST(request: NextRequest) {
     const normalizedEmail = email.toLowerCase().trim();
     const normalizedOTP = otp.toString().trim();
 
-    // Get stored OTP data
-    const storedData = otpStore.get(normalizedEmail);
+    // Get stored OTP data from DB
+    const storedRecord = await Otp.findOne({ email: normalizedEmail });
 
-    if (!storedData) {
+    if (!storedRecord) {
       return withCors(NextResponse.json(
         { error: 'No OTP found for this email. Please request a new one.' },
         { status: 404 }
@@ -75,8 +65,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if OTP has expired
-    if (storedData.expiresAt < Date.now()) {
-      otpStore.delete(normalizedEmail);
+    if (storedRecord.expiresAt.getTime() < Date.now()) {
+      await Otp.deleteOne({ email: normalizedEmail });
       return withCors(NextResponse.json(
         { error: 'OTP has expired. Please request a new one.' },
         { status: 410 }
@@ -84,29 +74,30 @@ export async function POST(request: NextRequest) {
     }
 
     // Check attempt limit (max 3 attempts)
-    if (storedData.attempts >= 3) {
-      otpStore.delete(normalizedEmail);
+    if (storedRecord.attempts >= 3) {
+      await Otp.deleteOne({ email: normalizedEmail });
       return withCors(NextResponse.json(
         { error: 'Too many failed attempts. Please request a new OTP.' },
         { status: 429 }
       ), request);
     }
 
-    // Verify OTP
-    if (storedData.otp !== normalizedOTP) {
-      // Increment attempts
-      storedData.attempts += 1;
-      otpStore.set(normalizedEmail, storedData);
+    // Verify OTP (compare plaintext OTP with hashed value)
+    const isMatch = await bcrypt.compare(normalizedOTP, storedRecord.otp);
+    if (!isMatch) {
+      // Increment attempts in DB
+      storedRecord.attempts += 1;
+      await storedRecord.save();
 
-      const attemptsLeft = 3 - storedData.attempts;
+      const attemptsLeft = 3 - storedRecord.attempts;
       return withCors(NextResponse.json(
         { error: `Invalid OTP. ${attemptsLeft} attempts remaining.` },
         { status: 400 }
       ), request);
     }
 
-    // OTP is valid - remove from store
-    otpStore.delete(normalizedEmail);
+    // OTP is valid - remove from DB
+    await Otp.deleteOne({ email: normalizedEmail });
 
     return withCors(NextResponse.json({
       success: true,
