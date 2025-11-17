@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { HeroMedia } from '@/models/HeroMedia';
 import dbConnect from '@/lib/mongodb';
 import { getTokenFromRequest, verifyToken } from '@/lib/auth';
+import User from '@/models/User';
 
 // Verify admin token
 async function verifyAdminToken(request: NextRequest) {
@@ -21,6 +22,9 @@ async function verifyAdminToken(request: NextRequest) {
 // GET - Fetch all hero media
 export async function GET(request: NextRequest) {
   try {
+    // Ensure User model is registered before populate() calls
+    void User;
+
     const admin = await verifyAdminToken(request);
     if (!admin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
