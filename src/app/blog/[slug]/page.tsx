@@ -9,7 +9,8 @@ interface BlogPageProps {
 // Generate metadata for SEO
 export async function generateMetadata({ params }: BlogPageProps): Promise<Metadata> {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/blog/slug/${params.slug}`, {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const response = await fetch(`${baseUrl}/api/blog/slug/${params.slug}`, {
       cache: 'no-store'
     });
 
@@ -72,7 +73,8 @@ export default async function BlogPostPage({ params }: BlogPageProps) {
   let blogData;
   
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/blog/slug/${params.slug}`, {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const response = await fetch(`${baseUrl}/api/blog/slug/${params.slug}`, {
       cache: 'no-store'
     });
 
