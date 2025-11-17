@@ -62,6 +62,7 @@ interface EventFormData {
   dresscode?: string
   status: string
   contactPhone?: string
+  customEventType?: string
   dynamicPricing: DynamicPricingConfig
   poster?: string
   gallery?: string[]
@@ -342,6 +343,27 @@ export default function CreateFusionXEventPage() {
     }))
   }
 
+  const addFacility = () => {
+    setFormData(prev => ({
+      ...prev,
+      facilities: [
+        ...prev.facilities,
+        {
+          name: '',
+          description: '',
+          isIncluded: true,
+        },
+      ],
+    }))
+  }
+
+  const removeFacility = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      facilities: prev.facilities.filter((_, i) => i !== index),
+    }))
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -402,9 +424,26 @@ export default function CreateFusionXEventPage() {
                 <option value="brand_launch">Brand Launch</option>
                 <option value="immersive_theatre">Immersive Theatre</option>
                 <option value="neon_night">Neon Night</option>
-                <option value="other">Other</option>
+                <option value="dandiya">Dandiya Night</option>
+                <option value="garba">Garba Night</option>
+                <option value="party">Party / Club Night</option>
+                <option value="other">Custom / Other</option>
               </select>
             </div>
+            {formData.eventType === 'other' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Custom Event Type Label
+                </label>
+                <input
+                  type="text"
+                  value={formData.customEventType || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, customEventType: e.target.value }))}
+                  className="w-full bg-gray-700 border border-gray-600 text-white px-3 py-2 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+                  placeholder="e.g. Dandiya Night, Garba Fest, Neon Party"
+                />
+              </div>
+            )}
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Short Description *
@@ -871,6 +910,108 @@ export default function CreateFusionXEventPage() {
                 placeholder="400001"
               />
             </div>
+          </div>
+        </div>
+
+        {/* Facilities */}
+        <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+              <Settings className="h-5 w-5" />
+              Facilities
+            </h2>
+            <button
+              type="button"
+              onClick={addFacility}
+              className="bg-yellow-500 hover:bg-yellow-600 text-black px-3 py-1 rounded text-sm font-medium flex items-center gap-1"
+            >
+              <Plus className="h-4 w-4" />
+              Add Facility
+            </button>
+          </div>
+          <p className="text-sm text-gray-400 mb-4">
+            Configure what facilities are available as part of this FusionX format (e.g. parking, food court, security, restrooms).
+          </p>
+
+          <div className="space-y-4">
+            {formData.facilities.map((facility, index) => (
+              <div key={index} className="border border-gray-600 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={facility.isIncluded}
+                      onChange={(e) => {
+                        const checked = e.target.checked
+                        setFormData(prev => ({
+                          ...prev,
+                          facilities: prev.facilities.map((f, i) =>
+                            i === index ? { ...f, isIncluded: checked } : f
+                          )
+                        }))
+                      }}
+                      className="h-4 w-4 text-yellow-500 border-gray-500 rounded bg-gray-700 focus:ring-yellow-400"
+                    />
+                    <span className="text-sm text-gray-200 font-medium">
+                      {facility.name || `Facility ${index + 1}`}
+                    </span>
+                  </div>
+
+                  {formData.facilities.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeFacility(index)}
+                      className="text-red-400 hover:text-red-300 text-xs"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Name
+                    </label>
+                    <input
+                      type="text"
+                      value={facility.name}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        setFormData(prev => ({
+                          ...prev,
+                          facilities: prev.facilities.map((f, i) =>
+                            i === index ? { ...f, name: value } : f
+                          )
+                        }))
+                      }}
+                      className="w-full bg-gray-700 border border-gray-600 text-white px-3 py-2 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+                      placeholder="Parking, Food Court, Security, Restrooms, etc."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Description
+                    </label>
+                    <input
+                      type="text"
+                      value={facility.description}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        setFormData(prev => ({
+                          ...prev,
+                          facilities: prev.facilities.map((f, i) =>
+                            i === index ? { ...f, description: value } : f
+                          )
+                        }))
+                      }}
+                      className="w-full bg-gray-700 border border-gray-600 text-white px-3 py-2 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+                      placeholder="Short description of this facility"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 

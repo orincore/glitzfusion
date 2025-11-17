@@ -62,7 +62,7 @@ export interface IFusionXEvent {
   longDescription: string;
   
   // Event Type
-  eventType: 'festival' | 'campus_tour' | 'brand_launch' | 'immersive_theatre' | 'neon_night' | 'other';
+  eventType: 'festival' | 'campus_tour' | 'brand_launch' | 'immersive_theatre' | 'neon_night' | 'dandiya' | 'garba' | 'party' | 'other';
   
   // Scheduling
   dateSlots: IDateSlot[];
@@ -104,6 +104,7 @@ export interface IFusionXEvent {
   metaTitle?: string;
   metaDescription?: string;
   socialImage?: string; // R2 URL
+  customEventType?: string;
   
   // Timestamps
   createdAt: Date;
@@ -200,7 +201,7 @@ const FusionXEventSchema = new mongoose.Schema({
   eventType: {
     type: String,
     required: true,
-    enum: ['festival', 'campus_tour', 'brand_launch', 'immersive_theatre', 'neon_night', 'other']
+    enum: ['festival', 'campus_tour', 'brand_launch', 'immersive_theatre', 'neon_night', 'dandiya', 'garba', 'party', 'other']
   },
   
   dateSlots: [DateSlotSchema],
@@ -262,6 +263,7 @@ const FusionXEventSchema = new mongoose.Schema({
   metaTitle: String,
   metaDescription: String,
   socialImage: String,
+  customEventType: String,
   
   createdBy: { 
     type: mongoose.Schema.Types.ObjectId, 

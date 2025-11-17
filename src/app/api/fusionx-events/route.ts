@@ -106,6 +106,11 @@ export async function GET(request: NextRequest) {
         console.log(`Event ${event.title} aggregation result:`, bookingStats);
         
         // Calculate totals
+        // IMPORTANT: In our system, a booking should only be fully counted
+        // when it is both confirmed AND paid. Since paymentStatus 'paid'
+        // is only set after successful payment (where we also mark
+        // status = 'confirmed'), we treat only the 'paid' bucket as
+        // confirmed+paid bookings for progress analytics.
         let actualRevenue = 0;
         let actualBookings = 0;
         let actualMembers = 0;
@@ -114,12 +119,12 @@ export async function GET(request: NextRequest) {
         let failedBookings = 0;
         
         bookingStats.forEach(stat => {
-          actualBookings += stat.count || 0;
-          
           if (stat._id === 'paid') {
+            // Only paid bookings are considered confirmed+paid
             actualRevenue = stat.revenue || 0;
+            actualBookings = stat.count || 0;
+            actualMembers = stat.members || 0;
             paidBookings = stat.count || 0;
-            actualMembers += stat.members || 0;
           } else if (stat._id === 'pending') {
             pendingBookings = stat.count || 0;
           } else if (stat._id === 'failed') {

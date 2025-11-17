@@ -298,12 +298,21 @@ export default function EventDetailsPage() {
       brand_launch: 'bg-green-600 text-green-100',
       immersive_theatre: 'bg-pink-600 text-pink-100',
       neon_night: 'bg-yellow-600 text-yellow-900',
+      dandiya: 'bg-orange-600 text-orange-100',
+      garba: 'bg-red-600 text-red-100',
+      party: 'bg-indigo-600 text-indigo-100',
       other: 'bg-gray-600 text-gray-100'
     }
 
     return (
       <span className={`px-3 py-1 rounded-full text-sm font-medium ${typeColors[eventType as keyof typeof typeColors] || 'bg-gray-600 text-gray-100'}`}>
-        {eventType.replace('_', ' ').toUpperCase()}
+        {eventType === 'dandiya'
+          ? 'DANDIYA NIGHT'
+          : eventType === 'garba'
+          ? 'GARBA NIGHT'
+          : eventType === 'party'
+          ? 'PARTY / CLUB NIGHT'
+          : eventType.replace('_', ' ').toUpperCase()}
       </span>
     )
   }

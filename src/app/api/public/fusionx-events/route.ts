@@ -50,12 +50,26 @@ export async function GET(request: NextRequest) {
           isAvailable: ts.isAvailable,
         })),
       })),
-      venue: `${event.location.venue}, ${event.location.city}`,
+      // Simple venue string for legacy usages
+      venue: `${event.location?.venue || ''}${event.location?.city ? `, ${event.location.city}` : ''}`,
+      // Full location object for detailed rendering
+      location: event.location
+        ? {
+            venue: event.location.venue,
+            address: event.location.address,
+            city: event.location.city,
+            state: event.location.state,
+            pincode: event.location.pincode,
+            landmark: event.location.landmark,
+            capacity: event.location.capacity,
+          }
+        : undefined,
       shortDescription: event.shortDescription,
       longDescription: event.longDescription,
       poster: event.poster,
       gallery: event.gallery || [],
       highlights: event.highlights || [],
+      facilities: event.facilities || [],
       tags: event.tags || [],
       isPast: event.isPast,
       attendeesCount: event.totalBookings || 0,

@@ -40,8 +40,10 @@ export async function GET(request: NextRequest) {
     const totalCount = await Booking.countDocuments(query);
 
     // Get revenue analytics
+    // IMPORTANT: For core revenue/booking metrics, only treat bookings
+    // as valid when paymentStatus is 'paid' AND status is 'confirmed'.
     const revenueStats = await Booking.aggregate([
-      { $match: { ...query, paymentStatus: 'paid' } },
+      { $match: { ...query, paymentStatus: 'paid', status: 'confirmed' } },
       {
         $group: {
           _id: null,
@@ -65,10 +67,12 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Get monthly revenue trend (last 12 months)
+    // Only confirmed+paid bookings are counted
     const monthlyRevenue = await Booking.aggregate([
       {
         $match: {
           paymentStatus: 'paid',
+          status: 'confirmed',
           createdAt: { $gte: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000) }
         }
       },
@@ -86,8 +90,9 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Get event-wise revenue
+    // Only confirmed+paid bookings are counted
     const eventRevenue = await Booking.aggregate([
-      { $match: { paymentStatus: 'paid' } },
+      { $match: { paymentStatus: 'paid', status: 'confirmed' } },
       {
         $group: {
           _id: '$eventId',
