@@ -12,8 +12,34 @@ import {
 } from '@/lib/r2';
 import { getTokenFromRequest, verifyToken } from '@/lib/auth';
 
+// Configure route segment to handle larger payloads
+export const runtime = 'nodejs';
+export const maxDuration = 300; // 5 minutes timeout for large uploads
+
+// Configure body parser for larger files
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+// Disable Next.js body parsing to handle large files manually
+export const bodyParser = false;
+
 export async function POST(request: NextRequest) {
   try {
+    // Check content length before processing
+    const contentLength = request.headers.get('content-length');
+    if (contentLength) {
+      const sizeInMB = parseInt(contentLength) / (1024 * 1024);
+      console.log(`Upload request size: ${sizeInMB.toFixed(2)}MB`);
+      
+      // Check if request is too large (100MB limit)
+      if (sizeInMB > 100) {
+        return NextResponse.json(
+          { error: `Request too large: ${sizeInMB.toFixed(2)}MB. Maximum allowed: 100MB` },
+          { status: 413 }
+        );
+      }
+    }
+
     // Verify admin authentication
     const token = getTokenFromRequest(request);
     if (!token) {
@@ -31,7 +57,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const formData = await request.formData();
+    // Parse form data with error handling
+    let formData;
+    try {
+      formData = await request.formData();
+    } catch (error) {
+      console.error('FormData parsing error:', error);
+      return NextResponse.json(
+        { error: 'Failed to parse form data. File may be too large or corrupted.' },
+        { status: 413 }
+      );
+    }
     const file = formData.get('file') as File;
     const uploadType = formData.get('type') as string; // 'poster', 'gallery', 'video', 'hero', 'highlights', 'ticket-template'
     const eventId = formData.get('eventId') as string;
@@ -108,29 +144,67 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Convert file to buffer
-    const buffer = Buffer.from(await file.arrayBuffer());
+    // Convert file to buffer efficiently
+    let buffer: Buffer;
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      buffer = Buffer.from(arrayBuffer);
+      console.log(`File converted to buffer: ${(buffer.length / (1024 * 1024)).toFixed(2)}MB`);
+    } catch (error) {
+      console.error('Error converting file to buffer:', error);
+      return NextResponse.json(
+        { error: 'Failed to process file. File may be corrupted or too large.' },
+        { status: 413 }
+      );
+    }
 
-    // Generate R2 key with proper folder structure
-    const r2Key = generateR2Key(folder, finalEventId, file.name);
+    // Generate R2 key
+    const key = generateR2Key(folder, finalEventId, file.name);
+    console.log(`Generated R2 key: ${key}`);
 
-    // Upload to R2
-    const publicUrl = await uploadToR2(buffer, r2Key, file.type);
+    // Upload to R2 with error handling
+    let url: string;
+    try {
+      url = await uploadToR2(buffer, key, file.type);
+      console.log(`File uploaded successfully to R2: ${url}`);
+    } catch (error) {
+      console.error('R2 upload error:', error);
+      return NextResponse.json(
+        { error: 'Failed to upload file to storage. Please try again.' },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
-      url: publicUrl,
-      key: r2Key,
-      filename: file.name,
+      url,
+      key,
       size: file.size,
-      type: uploadType,
-      eventId: finalEventId
+      type: file.type,
+      filename: file.name
     });
 
   } catch (error) {
     console.error('Upload error:', error);
+    
+    // Handle specific error types
+    if (error instanceof Error) {
+      if (error.message.includes('too large') || error.message.includes('413')) {
+        return NextResponse.json(
+          { error: 'File too large. Please reduce file size and try again.' },
+          { status: 413 }
+        );
+      }
+      if (error.message.includes('timeout')) {
+        return NextResponse.json(
+          { error: 'Upload timeout. Please try again with a smaller file.' },
+          { status: 408 }
+        );
+      }
+    }
+    
     return NextResponse.json(
-      { error: 'Failed to upload file' },
+      { error: 'Failed to upload file. Please try again.' },
       { status: 500 }
     );
   }
