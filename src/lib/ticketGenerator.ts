@@ -422,6 +422,7 @@ function initializeCanvas() {
 
 export interface TicketData {
   bookingCode: string;
+  memberCode?: string; // Individual member code
   memberName: string;
   eventTitle: string;
   date: string;
@@ -453,8 +454,9 @@ export async function generateTicket(
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
 
-    // Draw text using bitmap rendering
-    drawBitmapText(ctx, ticketData.bookingCode, centerX, centerY - 40, 4);
+    // Draw text using bitmap rendering - use member code if available, otherwise booking code
+    const displayCode = ticketData.memberCode || ticketData.bookingCode;
+    drawBitmapText(ctx, displayCode, centerX, centerY - 40, 4);
     drawBitmapText(ctx, ticketData.memberName, centerX, centerY + 5, 3);
     drawBitmapText(ctx, ticketData.eventTitle, centerX, centerY + 40, 2);
     drawBitmapText(ctx, `${ticketData.date} • ${ticketData.time}`, centerX, centerY + 75, 2);
@@ -530,7 +532,10 @@ export async function generateDefaultTicket(ticketData: TicketData): Promise<Buf
   
   // Draw content using bitmap text rendering
   drawBitmapText(ctx, 'FUSIONX EVENT TICKET', centerX, 80, 3);
-  drawBitmapText(ctx, ticketData.bookingCode, centerX, centerY - 40, 4);
+  
+  // Use member code if available, otherwise booking code
+  const displayCode = ticketData.memberCode || ticketData.bookingCode;
+  drawBitmapText(ctx, displayCode, centerX, centerY - 40, 4);
   drawBitmapText(ctx, ticketData.memberName, centerX, centerY + 10, 3);
   drawBitmapText(ctx, ticketData.eventTitle, centerX, centerY + 50, 2);
   drawBitmapText(ctx, `${ticketData.date} • ${ticketData.time}`, centerX, centerY + 80, 2);

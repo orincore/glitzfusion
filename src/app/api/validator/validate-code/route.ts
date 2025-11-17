@@ -46,8 +46,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find the booking
-    const booking = await Booking.findOne({ bookingCode }).populate('eventId');
+    // Find the booking by main booking code OR individual member code
+    let booking = await Booking.findOne({ bookingCode }).populate('eventId');
+    let memberIndex = 0; // Default to primary member
+    let isIndividualMemberCode = false;
+
+    if (!booking) {
+      // Try to find booking by individual member code
+      try {
+        booking = await Booking.findOne({ 
+          'members.memberCode': bookingCode 
+        }).populate('eventId');
+        
+        if (booking) {
+          // Find which member this code belongs to
+          memberIndex = booking.members.findIndex((m: any) => m.memberCode === bookingCode);
+          if (memberIndex !== -1) {
+            isIndividualMemberCode = true;
+          } else {
+            booking = null;
+          }
+        }
+      } catch (queryError) {
+        console.error('Error querying for member code:', queryError);
+        booking = null;
+      }
+    }
 
     if (!booking) {
       return NextResponse.json(
@@ -75,22 +99,73 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if code has already been used for attendance
-    const existingAttendance = await Attendance.findOne({ bookingCode });
+    // Resolve the specific member we are validating in this request
+    const currentMember = booking.members[memberIndex];
+    
+    if (!currentMember) {
+      return NextResponse.json(
+        { 
+          error: 'Member not found',
+          message: 'The specified member could not be found in this booking.'
+        },
+        { status: 404 }
+      );
+    }
+    
+    // Always validate a single member per request. For booking codes, we treat the
+    // primary member (index 0) as the one being validated.
+    const memberCodeToCheck = isIndividualMemberCode
+      ? bookingCode
+      : currentMember.memberCode || booking.bookingCode;
+    
+    // Check for existing attendance records for this specific member within this booking
+    const existingAttendances = await Attendance.find({ 
+      bookingId: booking._id,
+      memberCode: memberCodeToCheck
+    }).sort({ validatedAt: -1 });
 
-    if (existingAttendance) {
+    if (existingAttendances.length > 0) {
+      // Code has been validated before - DENY ACCESS and show validation history
       return NextResponse.json(
         {
-          error: 'Code already used',
-          message: 'This booking code has already been used for attendance.',
-          usageInfo: {
-            eventTitle: existingAttendance.eventTitle,
-            validatedAt: existingAttendance.validatedAt,
-            validatedBy: existingAttendance.validatedBy,
-            memberName: existingAttendance.memberName
+          success: false,
+          error: 'Access denied - Code already used',
+          message: `This ${isIndividualMemberCode ? 'member' : 'booking'} code has already been used for entry. Access denied.`,
+          validation: {
+            bookingCode: booking.bookingCode,
+            validatedCode: memberCodeToCheck,
+            codeType: 'individual',
+            eventTitle: booking.eventTitle,
+            eventDate: booking.selectedDate,
+            eventTime: booking.selectedTime,
+            totalMemberCount: booking.members.length,
+            validatedMemberCount: existingAttendances.length,
+            validatedMembers: (await Attendance.find({ bookingId: booking._id })).map((attendance: any) => ({
+              name: attendance.memberName,
+              email: attendance.memberEmail,
+              phone: attendance.memberPhone,
+              memberCode: attendance.memberCode
+            })),
+            validationHistory: existingAttendances.map((attendance: any) => ({
+              memberName: attendance.memberName,
+              memberEmail: attendance.memberEmail,
+              memberCode: attendance.memberCode,
+              validatedAt: attendance.validatedAt,
+              validatedBy: attendance.validatedBy,
+              ipAddress: attendance.ipAddress
+            })),
+            allMembers: booking.members.map((m: any) => ({
+              name: m.name,
+              email: m.email,
+              phone: m.phone,
+              memberCode: m.memberCode
+            })),
+            firstValidatedAt: existingAttendances[existingAttendances.length - 1].validatedAt,
+            lastValidatedAt: existingAttendances[0].validatedAt,
+            validatedBy: existingAttendances[0].validatedBy
           }
         },
-        { status: 400 }
+        { status: 200 }
       );
     }
 
@@ -99,27 +174,32 @@ export async function POST(request: NextRequest) {
     const ipAddress = request.headers.get('x-forwarded-for')?.split(',')[0] || 
                      request.headers.get('x-real-ip') || 'unknown';
 
-    // Mark attendance for all members in the booking
-    const attendanceRecords = [];
+    // Mark attendance for a single specific member per request
+    const member = currentMember;
+    const memberCode = member.memberCode || booking.bookingCode;
     
-    for (const member of booking.members) {
-      const attendance = new Attendance({
-        bookingId: booking._id,
-        bookingCode: booking.bookingCode,
-        eventId: booking.eventId._id,
-        eventTitle: booking.eventTitle,
-        memberEmail: member.email,
-        memberName: member.name,
-        memberPhone: member.phone,
-        validatedBy: admin.email,
-        ipAddress,
-        userAgent
-      });
+    const attendance = new Attendance({
+      bookingId: booking._id,
+      bookingCode: booking.bookingCode,
+      memberCode: memberCode,
+      eventId: booking.eventId._id,
+      eventTitle: booking.eventTitle,
+      memberEmail: member.email || 'no-email-provided',
+      memberName: member.name,
+      memberPhone: member.phone || 'no-phone-provided',
+      validatedBy: admin.email,
+      ipAddress,
+      userAgent
+    });
 
-      await attendance.save();
-      attendanceRecords.push(attendance);
+    await attendance.save();
 
-      // Send welcome email to each member
+    const allAttendancesForBooking = await Attendance.find({
+      bookingId: booking._id
+    }).sort({ validatedAt: -1 });
+
+    // Send welcome email to the validated member - only if they have an email
+    if (member.email && member.email !== 'no-email-provided') {
       try {
         await sendWelcomeEmail({
           memberName: member.name,
@@ -137,25 +217,94 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Booking code validated successfully!',
+      message: `Member code validated successfully for ${currentMember.name}!`,
       validation: {
         bookingCode: booking.bookingCode,
+        validatedCode: memberCodeToCheck,
+        codeType: 'individual',
         eventTitle: booking.eventTitle,
         eventDate: booking.selectedDate,
         eventTime: booking.selectedTime,
-        memberCount: booking.members.length,
-        members: booking.members.map((m: any) => ({
+        totalMemberCount: booking.members.length,
+        validatedMemberCount: allAttendancesForBooking.length,
+        validatedMembers: allAttendancesForBooking.map((attendance: any) => ({
+          name: attendance.memberName,
+          email: attendance.memberEmail,
+          phone: attendance.memberPhone,
+          memberCode: attendance.memberCode
+        })),
+        allMembers: booking.members.map((m: any) => ({
           name: m.name,
           email: m.email,
-          phone: m.phone
+          phone: m.phone,
+          memberCode: m.memberCode
         })),
         validatedAt: new Date(),
         validatedBy: admin.email
       }
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Code validation error:', error);
+    
+    // Handle duplicate key error specifically
+    if (error.code === 11000 && error.keyPattern && error.keyPattern.memberCode && error.keyPattern.memberEmail) {
+      try {
+        // Extract the memberCode from the error
+        const memberCode = error.keyValue?.memberCode;
+        if (memberCode) {
+          // Find the existing attendance record to show validation history
+          const existingAttendance = await Attendance.findOne({ memberCode });
+          if (existingAttendance) {
+            // Get the full booking to show complete validation history
+            const booking = await Booking.findById(existingAttendance.bookingId).populate('eventId');
+            if (booking) {
+              const allAttendances = await Attendance.find({ 
+                bookingId: booking._id 
+              }).sort({ validatedAt: -1 });
+              
+              return NextResponse.json(
+                {
+                  success: false,
+                  error: 'Access denied - Code already used',
+                  message: `This code has already been used for entry. Access denied.`,
+                  validation: {
+                    bookingCode: booking.bookingCode,
+                    validatedCode: memberCode,
+                    eventTitle: booking.eventTitle,
+                    eventDate: booking.selectedDate,
+                    eventTime: booking.selectedTime,
+                    totalMemberCount: booking.members.length,
+                    validatedMemberCount: allAttendances.length,
+                    validatedMembers: allAttendances.map((attendance: any) => ({
+                      name: attendance.memberName,
+                      email: attendance.memberEmail,
+                      phone: attendance.memberPhone,
+                      memberCode: attendance.memberCode
+                    })),
+                    validationHistory: allAttendances.map((attendance: any) => ({
+                      memberName: attendance.memberName,
+                      memberEmail: attendance.memberEmail,
+                      memberCode: attendance.memberCode,
+                      validatedAt: attendance.validatedAt,
+                      validatedBy: attendance.validatedBy,
+                      ipAddress: attendance.ipAddress
+                    })),
+                    firstValidatedAt: allAttendances[allAttendances.length - 1].validatedAt,
+                    lastValidatedAt: allAttendances[0].validatedAt,
+                    validatedBy: allAttendances[0].validatedBy
+                  }
+                },
+                { status: 200 }
+              );
+            }
+          }
+        }
+      } catch (recoveryError) {
+        console.error('Error recovering from duplicate key error:', recoveryError);
+      }
+    }
+    
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

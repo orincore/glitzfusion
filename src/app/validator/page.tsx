@@ -9,14 +9,32 @@ interface ValidationResult {
   message: string;
   validation?: {
     bookingCode: string;
+    validatedCode: string;
+    codeType: 'individual' | 'group';
     eventTitle: string;
     eventDate: string;
     eventTime: string;
-    memberCount: number;
-    members: Array<{
+    totalMemberCount: number;
+    validatedMemberCount: number;
+    validatedMembers: Array<{
       name: string;
       email: string;
       phone: string;
+      memberCode: string;
+    }>;
+    validationHistory?: Array<{
+      memberName: string;
+      memberEmail: string;
+      memberCode: string;
+      validatedAt: string;
+      validatedBy: string;
+      ipAddress?: string;
+    }>;
+    allMembers: Array<{
+      name: string;
+      email: string;
+      phone: string;
+      memberCode: string;
     }>;
     validatedAt: string;
     validatedBy: string;
@@ -75,6 +93,13 @@ export default function ValidatorPage() {
     e.preventDefault();
     if (!bookingCode.trim()) return;
 
+    await validateCode(bookingCode.trim().toUpperCase());
+  };
+
+  // Core validator for any code (booking or member)
+  const validateCode = async (code: string) => {
+    if (!code || isValidating) return;
+
     setIsValidating(true);
     setValidationResult(null);
 
@@ -86,14 +111,15 @@ export default function ValidatorPage() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ bookingCode: bookingCode.trim().toUpperCase() }),
+        body: JSON.stringify({ bookingCode: code }),
       });
 
       const data = await response.json();
       setValidationResult(data);
       
-      if (data.success) {
-        setBookingCode(''); // Clear the input on success
+      // Only clear the manual input when the code came from the input field
+      if (data.success && code === bookingCode.trim().toUpperCase()) {
+        setBookingCode('');
       }
     } catch (error) {
       setValidationResult({
@@ -338,7 +364,11 @@ export default function ValidatorPage() {
 
           {/* Validation Result */}
           {validationResult && (
-            <div className="bg-black/80 backdrop-blur-sm rounded-2xl border border-green-400/30 p-6 sm:p-8 shadow-[0_0_50px_rgba(0,255,0,0.1)]">
+            <div className={`bg-black/80 backdrop-blur-sm rounded-2xl p-6 sm:p-8 ${
+              validationResult.success 
+                ? 'border border-green-400/30 shadow-[0_0_50px_rgba(0,255,0,0.1)]'
+                : 'border border-red-400/30 shadow-[0_0_50px_rgba(255,0,0,0.1)]'
+            }`}>
               <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
                 <div className="flex items-center gap-3">
                   {validationResult.success ? (
@@ -351,85 +381,267 @@ export default function ValidatorPage() {
                     </div>
                   )}
                   <div>
-                    <h3 className="text-xl sm:text-2xl font-bold text-green-400 font-mono tracking-wide">
+                    <h3 className={`text-xl sm:text-2xl font-bold font-mono tracking-wide ${
+                      validationResult.success ? 'text-green-400' : 'text-red-400'
+                    }`}>
                       {validationResult.success ? 'ACCESS GRANTED' : 'ACCESS DENIED'}
                     </h3>
-                    <p className="text-green-300/70 text-sm font-mono">
+                    <p className={`text-sm font-mono ${
+                      validationResult.success ? 'text-green-300/70' : 'text-red-300/70'
+                    }`}>
                       {validationResult.success ? 'CODE VALIDATION SUCCESSFUL' : 'VALIDATION FAILED'}
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-green-400/10 border border-green-400/30 rounded-lg p-4 mb-6">
-                <p className="text-green-100 font-mono text-sm sm:text-base">{validationResult.message}</p>
+              <div className={`border rounded-lg p-4 mb-6 ${
+                validationResult.success 
+                  ? 'bg-green-400/10 border-green-400/30' 
+                  : 'bg-red-400/10 border-red-400/30'
+              }`}>
+                <p className={`font-mono text-sm sm:text-base ${
+                  validationResult.success ? 'text-green-100' : 'text-red-100'
+                }`}>
+                  {validationResult.message}
+                </p>
               </div>
 
-              {validationResult.success && validationResult.validation && (
+              {validationResult.validation && (
                 <div className="space-y-6">
                   {/* Event Details Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="bg-black/50 border border-green-400/30 rounded-lg p-4 shadow-[inset_0_0_10px_rgba(0,255,0,0.1)]">
+                    <div className={`bg-black/50 rounded-lg p-4 ${
+                      validationResult.success 
+                        ? 'border border-green-400/30 shadow-[inset_0_0_10px_rgba(0,255,0,0.1)]'
+                        : 'border border-red-400/30 shadow-[inset_0_0_10px_rgba(255,0,0,0.1)]'
+                    }`}>
                       <div className="flex items-center gap-3 mb-2">
-                        <Calendar className="h-5 w-5 text-green-400" />
-                        <span className="text-green-400 font-mono text-xs tracking-wide">EVENT</span>
+                        <Calendar className={`h-5 w-5 ${
+                          validationResult.success ? 'text-green-400' : 'text-red-400'
+                        }`} />
+                        <span className={`font-mono text-xs tracking-wide ${
+                          validationResult.success ? 'text-green-400' : 'text-red-400'
+                        }`}>EVENT</span>
                       </div>
-                      <p className="text-green-100 font-medium text-sm sm:text-base break-words">{validationResult.validation.eventTitle}</p>
+                      <p className={`font-medium text-sm sm:text-base break-words ${
+                        validationResult.success ? 'text-green-100' : 'text-red-100'
+                      }`}>{validationResult.validation.eventTitle}</p>
                     </div>
                     
-                    <div className="bg-black/50 border border-green-400/30 rounded-lg p-4 shadow-[inset_0_0_10px_rgba(0,255,0,0.1)]">
+                    <div className={`bg-black/50 rounded-lg p-4 ${
+                      validationResult.success 
+                        ? 'border border-green-400/30 shadow-[inset_0_0_10px_rgba(0,255,0,0.1)]'
+                        : 'border border-red-400/30 shadow-[inset_0_0_10px_rgba(255,0,0,0.1)]'
+                    }`}>
                       <div className="flex items-center gap-3 mb-2">
-                        <Clock className="h-5 w-5 text-green-400" />
-                        <span className="text-green-400 font-mono text-xs tracking-wide">SCHEDULE</span>
+                        <Clock className={`h-5 w-5 ${
+                          validationResult.success ? 'text-green-400' : 'text-red-400'
+                        }`} />
+                        <span className={`font-mono text-xs tracking-wide ${
+                          validationResult.success ? 'text-green-400' : 'text-red-400'
+                        }`}>SCHEDULE</span>
                       </div>
-                      <p className="text-green-100 font-medium text-sm">
+                      <p className={`font-medium text-sm ${
+                        validationResult.success ? 'text-green-100' : 'text-red-100'
+                      }`}>
                         {new Date(validationResult.validation.eventDate).toLocaleDateString()}
                       </p>
-                      <p className="text-green-300/70 text-xs font-mono">{validationResult.validation.eventTime}</p>
+                      <p className={`text-xs font-mono ${
+                        validationResult.success ? 'text-green-300/70' : 'text-red-300/70'
+                      }`}>{validationResult.validation.eventTime}</p>
                     </div>
                     
-                    <div className="bg-black/50 border border-green-400/30 rounded-lg p-4 shadow-[inset_0_0_10px_rgba(0,255,0,0.1)]">
+                    <div className={`bg-black/50 rounded-lg p-4 ${
+                      validationResult.success 
+                        ? 'border border-green-400/30 shadow-[inset_0_0_10px_rgba(0,255,0,0.1)]'
+                        : 'border border-red-400/30 shadow-[inset_0_0_10px_rgba(255,0,0,0.1)]'
+                    }`}>
                       <div className="flex items-center gap-3 mb-2">
-                        <Users className="h-5 w-5 text-green-400" />
-                        <span className="text-green-400 font-mono text-xs tracking-wide">ATTENDEES</span>
+                        <Users className={`h-5 w-5 ${
+                          validationResult.success ? 'text-green-400' : 'text-red-400'
+                        }`} />
+                        <span className={`font-mono text-xs tracking-wide ${
+                          validationResult.success ? 'text-green-400' : 'text-red-400'
+                        }`}>ATTENDEES</span>
                       </div>
-                      <p className="text-green-100 font-medium text-lg">{validationResult.validation.memberCount}</p>
-                      <p className="text-green-300/70 text-xs font-mono">REGISTERED</p>
+                      <p className={`font-medium text-lg ${
+                        validationResult.success ? 'text-green-100' : 'text-red-100'
+                      }`}>
+                        {validationResult.validation.validatedMemberCount} / {validationResult.validation.totalMemberCount}
+                      </p>
+                      <p className={`text-xs font-mono ${
+                        validationResult.success ? 'text-green-300/70' : 'text-red-300/70'
+                      }`}>
+                        {validationResult.validation.codeType === 'individual' ? 'INDIVIDUAL' : 'GROUP'} {validationResult.success ? 'VALIDATED' : 'DENIED'}
+                      </p>
                     </div>
                     
-                    <div className="bg-black/50 border border-green-400/30 rounded-lg p-4 shadow-[inset_0_0_10px_rgba(0,255,0,0.1)]">
+                    <div className={`bg-black/50 rounded-lg p-4 ${
+                      validationResult.success 
+                        ? 'border border-green-400/30 shadow-[inset_0_0_10px_rgba(0,255,0,0.1)]'
+                        : 'border border-red-400/30 shadow-[inset_0_0_10px_rgba(255,0,0,0.1)]'
+                    }`}>
                       <div className="flex items-center gap-3 mb-2">
-                        <Shield className="h-5 w-5 text-green-400" />
-                        <span className="text-green-400 font-mono text-xs tracking-wide">CODE</span>
+                        <Shield className={`h-5 w-5 ${
+                          validationResult.success ? 'text-green-400' : 'text-red-400'
+                        }`} />
+                        <span className={`font-mono text-xs tracking-wide ${
+                          validationResult.success ? 'text-green-400' : 'text-red-400'
+                        }`}>CODE</span>
                       </div>
-                      <p className="text-green-100 font-bold font-mono text-lg tracking-wider">{validationResult.validation.bookingCode}</p>
-                      <p className="text-green-300/70 text-xs font-mono">VERIFIED</p>
+                      <p className={`font-bold font-mono text-lg tracking-wider ${
+                        validationResult.success ? 'text-green-100' : 'text-red-100'
+                      }`}>{validationResult.validation.validatedCode}</p>
+                      <p className={`text-xs font-mono ${
+                        validationResult.success ? 'text-green-300/70' : 'text-red-300/70'
+                      }`}>
+                        {validationResult.validation.codeType === 'individual' ? 'MEMBER CODE' : 'BOOKING CODE'} {validationResult.success ? 'VERIFIED' : 'DENIED'}
+                      </p>
                     </div>
                   </div>
 
-                  {/* Attendee Details */}
-                  <div className="border-t border-green-400/30 pt-6">
-                    <h4 className="text-green-400 font-mono font-bold mb-4 flex items-center gap-2 text-lg">
-                      <Mail className="h-5 w-5" />
-                      ATTENDEE MANIFEST
+                  {/* Validated Members */}
+                  <div className={`border-t pt-6 ${
+                    validationResult.success ? 'border-green-400/30' : 'border-red-400/30'
+                  }`}>
+                    <h4 className={`font-mono font-bold mb-4 flex items-center gap-2 text-lg ${
+                      validationResult.success ? 'text-green-400' : 'text-red-400'
+                    }`}>
+                      <CheckCircle className={`h-5 w-5 ${
+                        validationResult.success ? 'text-green-400' : 'text-red-400'
+                      }`} />
+                      {validationResult.success ? 'VALIDATED MEMBERS' : 'PREVIOUSLY VALIDATED MEMBERS'}
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {validationResult.validation.members.map((member, index) => (
-                        <div key={index} className="bg-black/50 border border-green-400/20 rounded-lg p-4 shadow-[inset_0_0_10px_rgba(0,255,0,0.05)]">
+                      {(validationResult.validation.validatedMembers || []).map((member: any, index: number) => (
+                        <div key={index} className={`rounded-lg p-4 ${
+                          validationResult.success 
+                            ? 'bg-green-400/10 border border-green-400/30 shadow-[inset_0_0_10px_rgba(0,255,0,0.1)]'
+                            : 'bg-red-400/10 border border-red-400/30 shadow-[inset_0_0_10px_rgba(255,0,0,0.1)]'
+                        }`}>
                           <div className="flex items-center gap-3 mb-2">
-                            <div className="w-8 h-8 bg-green-400/20 border border-green-400 rounded-full flex items-center justify-center">
-                              <span className="text-green-400 font-mono text-sm font-bold">{index + 1}</span>
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                              validationResult.success 
+                                ? 'bg-green-400/30 border border-green-400'
+                                : 'bg-red-400/30 border border-red-400'
+                            }`}>
+                              <CheckCircle className={`w-4 h-4 ${
+                                validationResult.success ? 'text-green-400' : 'text-red-400'
+                              }`} />
                             </div>
-                            <p className="text-green-100 font-medium text-base">{member.name}</p>
+                            <p className={`font-medium text-base ${
+                              validationResult.success ? 'text-green-100' : 'text-red-100'
+                            }`}>{member.name}</p>
                           </div>
                           <div className="ml-11 space-y-1">
-                            <p className="text-green-300/70 text-sm font-mono">{member.email}</p>
-                            <p className="text-green-300/70 text-sm font-mono">{member.phone}</p>
+                            <p className={`text-sm font-mono ${
+                              validationResult.success ? 'text-green-300/70' : 'text-red-300/70'
+                            }`}>{member.email}</p>
+                            <p className={`text-sm font-mono ${
+                              validationResult.success ? 'text-green-300/70' : 'text-red-300/70'
+                            }`}>{member.phone}</p>
+                            <p className={`text-sm font-mono font-bold ${
+                              validationResult.success ? 'text-green-400' : 'text-red-400'
+                            }`}>Code: {member.memberCode}</p>
                           </div>
                         </div>
                       ))}
                     </div>
                   </div>
+
+                  {/* Validation History - Only show for access denied cases */}
+                  {!validationResult.success && validationResult.validation?.validationHistory && (
+                    <div className="border-t border-red-400/30 pt-6">
+                      <h4 className="text-red-400 font-mono font-bold mb-4 flex items-center gap-2 text-lg">
+                        <Clock className="h-5 w-5" />
+                        VALIDATION HISTORY - ACCESS DENIED
+                      </h4>
+                      <div className="bg-red-400/10 border border-red-400/30 rounded-lg p-4 mb-4">
+                        <p className="text-red-100 text-sm font-mono">
+                          This code has been used before. Entry is denied for security reasons.
+                        </p>
+                      </div>
+                      <div className="space-y-3">
+                        {validationResult.validation.validationHistory.map((history: any, index: number) => (
+                          <div key={index} className="bg-red-400/5 border border-red-400/20 rounded-lg p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-red-100 font-medium">{history.memberName}</p>
+                              <span className="text-red-400 text-xs font-mono">
+                                {new Date(history.validatedAt).toLocaleString()}
+                              </span>
+                            </div>
+                            <div className="text-xs text-red-300/70 font-mono space-y-1">
+                              <p>Validated by: {history.validatedBy}</p>
+                              <p>Member Code: {history.memberCode}</p>
+                              {history.ipAddress && <p>IP Address: {history.ipAddress}</p>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* All Members Overview */}
+                  {validationResult.validation.codeType === 'individual' && validationResult.validation.totalMemberCount > 1 && (
+                    <div className="border-t border-green-400/30 pt-6">
+                      <h4 className="text-green-400 font-mono font-bold mb-4 flex items-center gap-2 text-lg">
+                        <Users className="h-5 w-5" />
+                        ALL BOOKING MEMBERS
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {validationResult.validation.allMembers.map((member: any, index: number) => {
+                          const isValidated = (validationResult.validation!.validatedMembers || []).some((vm: any) => vm.memberCode === member.memberCode);
+                          const isTileDisabled = isValidating;
+                          return (
+                            <button
+                              key={index}
+                              type="button"
+                              onClick={() => !isTileDisabled && validateCode(member.memberCode)}
+                              disabled={isTileDisabled}
+                              className={`text-left border rounded-lg p-4 shadow-[inset_0_0_10px_rgba(0,255,0,0.05)] transition-transform duration-150 ${
+                                isValidated 
+                                  ? 'bg-green-400/10 border-green-400/30' 
+                                  : 'bg-black/50 border-green-400/20 hover:bg-green-400/5 hover:border-green-400/40'
+                              } ${
+                                isTileDisabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer active:scale-[0.98]'
+                              }`}
+                            >
+                              <div className="flex items-center gap-3 mb-2">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                                  isValidated 
+                                    ? 'bg-green-400/30 border border-green-400' 
+                                    : 'bg-gray-400/20 border border-gray-400'
+                                }`}>
+                                  {isValidated ? (
+                                    <CheckCircle className="w-4 h-4 text-green-400" />
+                                  ) : (
+                                    <span className="text-gray-400 font-mono text-sm font-bold">{index + 1}</span>
+                                  )}
+                                </div>
+                                <p className="text-green-100 font-medium text-base">{member.name}</p>
+                                {isValidated && (
+                                  <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-green-500/20 border border-green-400/60 px-2 py-0.5 text-[11px] font-mono text-green-300">
+                                    <CheckCircle className="w-3 h-3" />
+                                    <span>VALIDATED</span>
+                                  </span>
+                                )}
+                              </div>
+                              <div className="ml-11 space-y-1">
+                                <p className="text-green-300/70 text-sm font-mono">{member.email}</p>
+                                <p className="text-green-300/70 text-sm font-mono">{member.phone}</p>
+                                <p className={`text-sm font-mono font-bold ${
+                                  isValidated ? 'text-green-400' : 'text-gray-400'
+                                }`}>
+                                  Code: {member.memberCode} {isValidated ? '✓' : ''}
+                                </p>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Success Message */}
                   <div className="text-center bg-green-400/10 border border-green-400/30 rounded-lg p-4">

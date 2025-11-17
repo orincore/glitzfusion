@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 export interface IAttendance extends mongoose.Document {
   bookingId: mongoose.Types.ObjectId;
   bookingCode: string;
+  memberCode: string; // Individual member code
   eventId: mongoose.Types.ObjectId;
   eventTitle: string;
   memberEmail: string;
@@ -24,6 +25,11 @@ const AttendanceSchema = new mongoose.Schema<IAttendance>({
     index: true
   },
   bookingCode: {
+    type: String,
+    required: true,
+    index: true
+  },
+  memberCode: {
     type: String,
     required: true,
     index: true
@@ -68,7 +74,8 @@ const AttendanceSchema = new mongoose.Schema<IAttendance>({
 });
 
 // Compound indexes for efficient queries
-AttendanceSchema.index({ bookingCode: 1, memberEmail: 1 }, { unique: true });
+AttendanceSchema.index({ memberCode: 1, memberEmail: 1 }, { unique: true });
+AttendanceSchema.index({ bookingCode: 1, memberEmail: 1 }); // Keep for backward compatibility but not unique
 AttendanceSchema.index({ eventId: 1, validatedAt: -1 });
 AttendanceSchema.index({ validatedBy: 1, validatedAt: -1 });
 

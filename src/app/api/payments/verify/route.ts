@@ -4,7 +4,7 @@ import dbConnect from '@/lib/mongodb';
 import Booking from '@/models/Booking';
 import Payment from '@/models/Payment';
 import { FusionXEvent } from '@/models/FusionXEvent';
-import { sendPaymentConfirmationEmail } from '@/lib/emailService';
+import { sendPaymentConfirmationEmailWithAllTickets } from '@/lib/emailService';
 import { formatBookingConfirmation } from '@/lib/bookingUtils';
 import { TransactionLogger } from '@/lib/transactionLogger';
 
@@ -226,7 +226,7 @@ export async function POST(request: NextRequest) {
       console.error('Error logging payment success:', logError);
     }
 
-    // Send payment confirmation emails with invoice and tickets to all members
+    // Send payment confirmation email with invoice and all tickets to primary contact only
     try {
       const bookingData = formatBookingConfirmation(booking);
       // Add additional booking information
@@ -241,32 +241,26 @@ export async function POST(request: NextRequest) {
         amount: payment.amount / 100 // Convert from paise to rupees
       };
 
-      // Send enhanced emails with invoices to all members
-      const emailPromises = booking.members.map((member: any) => 
-        sendPaymentConfirmationEmail(
-          member.email, 
-          bookingData, 
-          paymentData,
-          event?.ticketTemplate
-        )
+      // Send enhanced email with invoice and all tickets to primary contact only
+      const primaryEmail = booking.primaryContact.email;
+      const emailResult = await sendPaymentConfirmationEmailWithAllTickets(
+        primaryEmail, 
+        bookingData, 
+        paymentData,
+        event?.ticketTemplate
       );
       
-      const emailResults = await Promise.all(emailPromises);
-      
-      // Log email results
-      const successfulEmails = emailResults.filter(result => result.success).length;
-      const failedEmails = emailResults.filter(result => !result.success).length;
-      
-      console.log(`Payment confirmation emails sent: ${successfulEmails} successful, ${failedEmails} failed`);
-      
-      // Mark email as sent if at least one email was successful
-      if (successfulEmails > 0) {
+      // Log email result
+      if (emailResult.success) {
+        console.log(`Payment confirmation email with all tickets sent to primary contact: ${primaryEmail}`);
         booking.emailSent = true;
         await booking.save();
+      } else {
+        console.error(`Failed to send payment confirmation email to primary contact: ${primaryEmail}`, emailResult.error);
       }
 
     } catch (emailError) {
-      console.error('Error sending payment confirmation emails:', emailError);
+      console.error('Error sending payment confirmation email:', emailError);
       // Don't fail the payment verification if email fails
       // Just log it for manual follow-up
     }

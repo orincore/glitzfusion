@@ -2,6 +2,22 @@ import nodemailer from 'nodemailer';
 import { generateTicket, generateDefaultTicket, TicketData } from './ticketGenerator';
 import { generateInvoicePDF, generateInvoiceNumber, formatInvoiceDate, InvoiceData } from './invoiceGenerator';
 
+// Helper function to generate fallback member code
+function generateFallbackMemberCode(bookingCode: string, memberIndex: number): string {
+  if (memberIndex === 0) {
+    // Primary member gets the main booking code
+    return bookingCode;
+  } else {
+    // Other members get random codes
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 6; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  }
+}
+
 // Email configuration based on env
 const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
 const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587', 10);
@@ -361,14 +377,18 @@ export async function sendBookingConfirmationEmail(email: string, bookingData: a
       const member = bookingData.members.find((m: any) => m.email === email) || bookingData.members[0];
       if (member) {
         ticketMemberName = member.name;
+        const memberIndex = bookingData.members.findIndex((m: any) => m === member);
+        const memberCode = member.memberCode || generateFallbackMemberCode(bookingData.bookingCode, memberIndex);
+        
         const ticketData: TicketData = {
           bookingCode: bookingData.bookingCode,
+          memberCode: memberCode,
           memberName: member.name,
           eventTitle: bookingData.eventTitle,
           date: bookingData.date,
           time: bookingData.time,
           venue: bookingData.venue || 'Event Venue',
-          memberIndex: 0,
+          memberIndex: memberIndex,
           totalMembers: bookingData.members.length,
         };
 
@@ -642,6 +662,315 @@ export async function sendPaymentConfirmationEmail(
     };
   } catch (error) {
     console.error('Error sending payment confirmation email:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}
+
+// Send OTP verification email
+export async function sendOTPEmail(email: string, otp: string) {
+  try {
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      console.warn('SMTP credentials not configured. Email not sent.');
+      throw new Error('SMTP not configured');
+    }
+
+    const transporter = getTransporter();
+    const fromAddress = process.env.SMTP_FROM || process.env.SMTP_USER || '';
+
+    const otpHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>FusionX Email Verification</title>
+        <style>
+          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f8f9fa; }
+          .container { max-width: 500px; margin: 0 auto; background: white; }
+          .header { background: linear-gradient(135deg, #00ff7a, #22c55e); color: white; padding: 30px; text-align: center; }
+          .header h1 { margin: 0; font-size: 24px; font-weight: 700; }
+          .content { padding: 30px; text-align: center; }
+          .otp-code { font-size: 36px; font-weight: bold; color: #00ff7a; background: #000; padding: 20px; border-radius: 12px; letter-spacing: 8px; margin: 20px 0; font-family: 'Courier New', monospace; }
+          .instructions { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: left; }
+          .footer { background: #f8f9fa; padding: 20px; text-align: center; color: #6c757d; font-size: 14px; border-top: 1px solid #e9ecef; }
+          .warning { background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 8px; margin: 20px 0; color: #856404; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🔐 Email Verification</h1>
+            <p>Verify your email to continue with FusionX booking</p>
+          </div>
+          
+          <div class="content">
+            <p>Hello!</p>
+            <p>Please use the following verification code to complete your FusionX event booking:</p>
+            
+            <div class="otp-code">
+              ${otp}
+            </div>
+            
+            <div class="instructions">
+              <h4 style="margin: 0 0 10px 0; color: #1a1a1a;">Instructions:</h4>
+              <ul style="margin: 0; padding-left: 20px; text-align: left;">
+                <li>Enter this 6-digit code in the verification field</li>
+                <li>This code is valid for 5 minutes only</li>
+                <li>Do not share this code with anyone</li>
+                <li>If you didn't request this code, please ignore this email</li>
+              </ul>
+            </div>
+            
+            <div class="warning">
+              <strong>⚠️ Security Notice:</strong><br>
+              This code will expire in 5 minutes. If you need a new code, please request it from the booking form.
+            </div>
+          </div>
+
+          <div class="footer">
+            <p><strong>FusionX Events</strong> by GlitzFusion Studios</p>
+            <p>This is an automated security email. Please do not reply.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const mailOptions = {
+      from: {
+        name: 'FusionX Events',
+        address: fromAddress,
+      },
+      to: email,
+      subject: '🔐 FusionX Email Verification Code',
+      html: otpHtml,
+      text: `
+        FusionX Email Verification
+        
+        Your verification code is: ${otp}
+        
+        This code is valid for 5 minutes only.
+        Enter this code in the booking form to verify your email address.
+        
+        If you didn't request this code, please ignore this email.
+        
+        FusionX Events by GlitzFusion Studios
+      `,
+    };
+
+    const result = await transporter.sendMail(mailOptions);
+    console.log('OTP email sent successfully:', result.messageId);
+    
+    return { success: true, messageId: result.messageId };
+  } catch (error) {
+    console.error('Error sending OTP email:', error);
+    throw error;
+  }
+}
+
+// Send payment confirmation email with all member tickets to primary contact
+export async function sendPaymentConfirmationEmailWithAllTickets(
+  email: string, 
+  bookingData: any, 
+  paymentData: {
+    paymentId: string;
+    paymentMethod: string;
+    paymentDate: string;
+    amount: number;
+  },
+  ticketTemplateUrl?: string
+) {
+  try {
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      console.warn('SMTP credentials not configured. Email not sent.');
+      return { success: false, error: 'SMTP not configured' };
+    }
+
+    const transporter = getTransporter();
+    const fromAddress = process.env.SMTP_FROM || process.env.SMTP_USER || '';
+
+    // Generate invoice
+    const invoiceNumber = generateInvoiceNumber(bookingData.bookingCode, paymentData.paymentId);
+    const invoiceDate = formatInvoiceDate(new Date());
+    
+    const primaryContact = bookingData.members[0];
+    
+    const invoiceData: InvoiceData = {
+      invoiceNumber,
+      invoiceDate,
+      paymentId: paymentData.paymentId,
+      paymentMethod: paymentData.paymentMethod,
+      paymentDate: paymentData.paymentDate,
+      bookingCode: bookingData.bookingCode,
+      eventTitle: bookingData.eventTitle,
+      eventDate: bookingData.date,
+      eventTime: bookingData.time,
+      venue: bookingData.venue,
+      customerName: primaryContact.name,
+      customerEmail: primaryContact.email,
+      customerPhone: primaryContact.phone,
+      subtotal: paymentData.amount,
+      totalAmount: paymentData.amount,
+      members: bookingData.members,
+      notes: `Thank you for booking with FusionX Events! Present your booking code ${bookingData.bookingCode} at the event entrance.`
+    };
+
+    // Generate invoice PDF
+    let invoicePDF: Buffer | null = null;
+    try {
+      invoicePDF = await generateInvoicePDF(invoiceData);
+    } catch (invoiceError) {
+      console.error('Error generating invoice PDF:', invoiceError);
+    }
+
+    // Generate tickets for all members
+    const ticketBuffers: { buffer: Buffer; memberName: string; memberIndex: number }[] = [];
+    
+    try {
+      for (let i = 0; i < bookingData.members.length; i++) {
+        const member = bookingData.members[i];
+        const memberCode = member.memberCode || generateFallbackMemberCode(bookingData.bookingCode, i);
+        
+        const ticketData: TicketData = {
+          bookingCode: bookingData.bookingCode,
+          memberCode: memberCode,
+          memberName: member.name,
+          eventTitle: bookingData.eventTitle,
+          date: bookingData.date,
+          time: bookingData.time,
+          venue: bookingData.venue || 'Event Venue',
+          memberIndex: i,
+          totalMembers: bookingData.members.length,
+        };
+
+        const ticketBuffer = ticketTemplateUrl
+          ? await generateTicket(ticketTemplateUrl, ticketData)
+          : await generateDefaultTicket(ticketData);
+        
+        ticketBuffers.push({
+          buffer: ticketBuffer,
+          memberName: member.name,
+          memberIndex: i
+        });
+      }
+    } catch (ticketError) {
+      console.error('Error generating tickets:', ticketError);
+    }
+
+    // Prepare attachments
+    const attachments: any[] = [];
+    
+    // Add invoice PDF
+    if (invoicePDF) {
+      attachments.push({
+        filename: `FusionX-Invoice-${invoiceNumber}.pdf`,
+        content: invoicePDF,
+        contentType: 'application/pdf',
+      });
+    }
+
+    // Add all tickets as attachments
+    ticketBuffers.forEach(({ buffer, memberName, memberIndex }) => {
+      attachments.push({
+        filename: `FusionX-Ticket-${bookingData.bookingCode}-${memberName.replace(/\s+/g, '_')}.png`,
+        content: buffer,
+        contentType: 'image/png',
+      });
+    });
+
+    // Enhanced payment data for template
+    const enhancedPaymentData = {
+      ...paymentData,
+      invoiceNumber,
+      paymentDate: formatInvoiceDate(new Date(paymentData.paymentDate))
+    };
+
+    // Generate HTML with all tickets inline
+    let baseHtml = generatePaymentConfirmationHTML(bookingData, enhancedPaymentData);
+    
+    if (ticketBuffers.length > 0) {
+      const ticketsHtml = ticketBuffers.map(({ memberName, memberIndex }) => {
+        const member = bookingData.members[memberIndex];
+        const memberCode = member?.memberCode || generateFallbackMemberCode(bookingData.bookingCode, memberIndex);
+        return `
+        <div style="margin: 20px 0; padding: 20px; background: #f8f9fa; border-radius: 12px; border-left: 4px solid #00ff7a;">
+          <h4 style="color: #1a1a1a; margin: 0 0 10px 0;">
+            🎫 Ticket ${memberIndex + 1}: ${memberName}
+          </h4>
+          <p style="font-size: 16px; color: #00ff7a; font-weight: bold; font-family: 'Courier New', monospace; margin: 5px 0;">
+            Code: ${memberCode}
+          </p>
+          <p style="font-size: 14px; color: #6c757d; margin: 0;">
+            Individual ticket attached as: FusionX-Ticket-${bookingData.bookingCode}-${memberName.replace(/\s+/g, '_')}.png
+          </p>
+        </div>
+      `;}).join('');
+
+      baseHtml = `${baseHtml}
+        <div style="margin-top:30px; padding: 20px; background: #f8f9fa; border-radius: 12px;">
+          <h3 style="color: #1a1a1a; margin-bottom: 20px;">🎫 Event Tickets for All Members</h3>
+          <p style="font-size:14px;color:#6c757d;margin-bottom:20px;">
+            All tickets are attached to this email. Each member should present their individual ticket at the event entrance.
+          </p>
+          ${ticketsHtml}
+        </div>
+      `;
+    }
+
+    const mailOptions = {
+      from: {
+        name: 'FusionX Events',
+        address: fromAddress,
+      },
+      to: email,
+      subject: `🎉 Payment Confirmed & All Tickets - ${bookingData.bookingCode}`,
+      html: baseHtml,
+      text: `
+        FusionX Payment Confirmation & All Tickets
+        
+        Payment Successful! ✅
+        
+        Booking Code: ${bookingData.bookingCode}
+        Invoice Number: ${invoiceNumber}
+        
+        Event: ${bookingData.eventTitle}
+        Date: ${bookingData.date}
+        Time: ${bookingData.time}
+        
+        Payment Details:
+        Payment ID: ${paymentData.paymentId}
+        Method: ${paymentData.paymentMethod}
+        Amount Paid: ₹${paymentData.amount.toLocaleString()}
+        Date: ${paymentData.paymentDate}
+        
+        Members (${bookingData.members.length}):
+        ${bookingData.members.map((member: any, index: number) => 
+          `${index + 1}. ${member.name}${member.email ? ` (${member.email})` : ''} - Code: ${member.memberCode || `${bookingData.bookingCode}-${index + 1}`}`
+        ).join('\n')}
+        
+        Your invoice and all member tickets are attached to this email.
+        Please save your booking code and ensure each member has their ticket for entry.
+        
+        Thank you for choosing FusionX Events!
+        
+        FusionX Events by GlitzFusion Studios
+        events@glitzfusion.in
+      `,
+      attachments,
+    };
+
+    const result = await transporter.sendMail(mailOptions);
+    console.log('Payment confirmation email with all tickets sent successfully:', result.messageId);
+    
+    return { 
+      success: true, 
+      messageId: result.messageId, 
+      invoiceGenerated: !!invoicePDF,
+      ticketsGenerated: ticketBuffers.length,
+      invoiceNumber 
+    };
+  } catch (error) {
+    console.error('Error sending payment confirmation email with all tickets:', error);
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }

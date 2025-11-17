@@ -34,10 +34,27 @@ export interface InvoiceData {
     name: string;
     email: string;
     phone: string;
+    memberCode?: string;
   }>;
   
   // Additional Info
   notes?: string;
+}
+
+// Helper function to generate fallback member code
+function generateFallbackMemberCode(bookingCode: string, memberIndex: number): string {
+  if (memberIndex === 0) {
+    // Primary member gets the main booking code
+    return bookingCode;
+  } else {
+    // Other members get random codes
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 6; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  }
 }
 
 export async function generateInvoicePDF(invoiceData: InvoiceData): Promise<Buffer> {
@@ -59,15 +76,19 @@ export async function generateInvoicePDF(invoiceData: InvoiceData): Promise<Buff
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
     
-    // Colors (convert hex to rgb)
-    const primaryColor = rgb(0, 1, 0.478); // #00ff7a
-    const darkColor = rgb(0.102, 0.102, 0.102); // #1a1a1a
-    const grayColor = rgb(0.4, 0.4, 0.4); // #666666
-    const lightGray = rgb(0.961, 0.961, 0.961); // #f5f5f5
+    // Colors - Professional color scheme
+    const primaryColor = rgb(0, 0.8, 0.4); // Softer green #00cc66
+    const accentColor = rgb(0, 0.6, 0.3); // Darker green #009950
+    const darkColor = rgb(0.15, 0.15, 0.15); // #262626
+    const grayColor = rgb(0.45, 0.45, 0.45); // #737373
+    const lightGray = rgb(0.96, 0.96, 0.96); // #f5f5f5
+    const borderGray = rgb(0.85, 0.85, 0.85); // #d9d9d9
     const white = rgb(1, 1, 1);
     const black = rgb(0, 0, 0);
+    const successGreen = rgb(0, 0.6, 0); // #009900
+    const warningOrange = rgb(0.9, 0.5, 0); // #e68a00
     
-    // Type definitions for better type safety
+    // Type definitions
     type RGBColor = ReturnType<typeof rgb>;
     
     interface TextOptions {
@@ -84,14 +105,13 @@ export async function generateInvoicePDF(invoiceData: InvoiceData): Promise<Buff
       strokeWidth?: number;
     }
     
-    // Helper function to draw text with improved positioning
+    // Helper function to draw text
     const drawText = (text: string, x: number, y: number, options: TextOptions = {}): void => {
       const fontSize = options.size || 12;
       const color = options.color || black;
       const fontToUse = options.bold ? boldFont : font;
       const maxWidth = options.maxWidth;
       
-      // Calculate text width for alignment
       let adjustedX = x;
       if (options.align === 'center' && maxWidth) {
         const textWidth = fontToUse.widthOfTextAtSize(text, fontSize);
@@ -103,7 +123,7 @@ export async function generateInvoicePDF(invoiceData: InvoiceData): Promise<Buff
       
       page.drawText(text, {
         x: adjustedX,
-        y: height - y, // pdf-lib uses bottom-left origin, convert from top-left
+        y: height - y,
         size: fontSize,
         font: fontToUse,
         color,
@@ -111,11 +131,11 @@ export async function generateInvoicePDF(invoiceData: InvoiceData): Promise<Buff
       });
     };
     
-    // Helper function to draw rectangle with better styling
+    // Helper function to draw rectangle
     const drawRect = (x: number, y: number, w: number, h: number, options: RectOptions = {}): void => {
       page.drawRectangle({
         x,
-        y: height - y - h, // Convert coordinate system
+        y: height - y - h,
         width: w,
         height: h,
         color: options.fill,
@@ -134,157 +154,245 @@ export async function generateInvoicePDF(invoiceData: InvoiceData): Promise<Buff
       });
     };
     
-    // Header with better spacing
-    drawText('FUSIONX', 50, 50, { size: 32, bold: true, color: darkColor });
-    drawText('by GlitzFusion Studios', 50, 90, { size: 12, color: primaryColor });
+    // HEADER SECTION - Clean and Professional
+    const headerY = 40;
     
-    // Add a subtle line under header
-    drawLine(50, 110, 550, 110, primaryColor, 2);
+    // Company branding
+    drawText('FUSIONX', 50, headerY, { size: 28, bold: true, color: primaryColor });
+    drawText('EVENT MANAGEMENT', 50, headerY + 22, { size: 9, bold: true, color: darkColor });
+    drawText('by GlitzFusion Studios', 50, headerY + 34, { size: 8, color: grayColor });
     
-    // Invoice Title with better positioning
-    drawText('INVOICE', 400, 50, { size: 28, bold: true, color: darkColor, align: 'right', maxWidth: 150 });
-    
-    // Invoice Details Box with improved design
-    const invoiceBoxY = 130;
-    drawRect(380, invoiceBoxY, 170, 90, { fill: lightGray, stroke: grayColor, strokeWidth: 1 });
-    
-    drawText('Invoice Number:', 390, invoiceBoxY + 15, { size: 11, bold: true, color: darkColor });
-    drawText(invoiceData.invoiceNumber, 390, invoiceBoxY + 32, { size: 11, color: darkColor });
-    drawText('Invoice Date:', 390, invoiceBoxY + 52, { size: 11, bold: true, color: darkColor });
-    drawText(invoiceData.invoiceDate, 390, invoiceBoxY + 69, { size: 11, color: darkColor });
-    
-    // Customer Details with better spacing
-    const customerY = 250;
-    drawText('Bill To:', 50, customerY, { size: 16, bold: true, color: primaryColor });
-    drawRect(50, customerY + 10, 240, 85, { fill: rgb(0.98, 0.98, 0.98), stroke: grayColor, strokeWidth: 0.5 });
-    
-    drawText(invoiceData.customerName, 60, customerY + 25, { size: 12, bold: true, color: darkColor });
-    drawText(invoiceData.customerEmail, 60, customerY + 45, { size: 11, color: darkColor });
-    drawText(invoiceData.customerPhone, 60, customerY + 65, { size: 11, color: darkColor });
-    
-    // Payment Details with better layout
-    drawText('Payment Details:', 310, customerY, { size: 16, bold: true, color: primaryColor });
-    drawRect(310, customerY + 10, 240, 85, { fill: rgb(0.98, 0.98, 0.98), stroke: grayColor, strokeWidth: 0.5 });
-    
-    drawText(`Payment ID: ${invoiceData.paymentId}`, 320, customerY + 25, { size: 10, color: darkColor, maxWidth: 220 });
-    drawText(`Method: ${invoiceData.paymentMethod}`, 320, customerY + 45, { size: 11, bold: true, color: darkColor });
-    drawText(`Date: ${invoiceData.paymentDate}`, 320, customerY + 65, { size: 11, color: darkColor });
-    
-    // Event Details Section with improved design
-    const eventY = 360;
-    drawText('Event Details', 50, eventY, { size: 18, bold: true, color: primaryColor });
-    
-    // Event Details Box with better spacing
-    drawRect(50, eventY + 25, 500, 120, { fill: rgb(0.95, 0.98, 0.95), stroke: primaryColor, strokeWidth: 1.5 });
-    
-    // Left column with better spacing
-    drawText('Event:', 65, eventY + 50, { size: 12, bold: true, color: darkColor });
-    drawText(invoiceData.eventTitle, 65, eventY + 70, { size: 13, bold: true, color: darkColor, maxWidth: 220 });
-    
-    drawText('Date & Time:', 65, eventY + 95, { size: 12, bold: true, color: darkColor });
-    drawText(`${invoiceData.eventDate}`, 65, eventY + 115, { size: 11, color: darkColor, maxWidth: 220 });
-    drawText(`${invoiceData.eventTime}`, 65, eventY + 130, { size: 11, color: darkColor, maxWidth: 220 });
-    
-    // Right column with better spacing
-    drawText('Booking Code:', 320, eventY + 50, { size: 12, bold: true, color: darkColor });
-    drawText(invoiceData.bookingCode, 320, eventY + 70, { size: 14, bold: true, color: primaryColor });
-    
-    if (invoiceData.venue) {
-      drawText('Venue:', 320, eventY + 95, { size: 12, bold: true, color: darkColor });
-      drawText(invoiceData.venue, 320, eventY + 115, { size: 11, color: darkColor, maxWidth: 210 });
-    }
-    
-    // Members Section with better formatting - moved down for better spacing
-    const membersY = 520;
-    drawText('Registered Members', 50, membersY, { size: 16, bold: true, color: primaryColor });
-    
-    // Members table with professional styling
-    drawRect(50, membersY + 20, 500, 30, { fill: rgb(0.85, 0.85, 0.85), stroke: darkColor, strokeWidth: 1 });
-    drawText('#', 60, membersY + 33, { size: 11, bold: true, color: darkColor });
-    drawText('Name', 90, membersY + 33, { size: 11, bold: true, color: darkColor });
-    drawText('Email', 250, membersY + 33, { size: 11, bold: true, color: darkColor });
-    drawText('Phone', 420, membersY + 33, { size: 11, bold: true, color: darkColor });
-    
-    let memberY = membersY + 50;
-    invoiceData.members.forEach((member, index) => {
-      // Professional table rows
-      const rowColor = index % 2 === 0 ? white : rgb(0.97, 0.97, 0.97);
-      drawRect(50, memberY, 500, 32, { fill: rowColor, stroke: grayColor, strokeWidth: 0.5 });
-      
-      drawText(`${index + 1}`, 60, memberY + 12, { size: 10, color: darkColor });
-      drawText(member.name, 90, memberY + 12, { size: 10, bold: true, color: darkColor, maxWidth: 145 });
-      drawText(member.email, 250, memberY + 12, { size: 9, color: darkColor, maxWidth: 155 });
-      drawText(member.phone, 420, memberY + 12, { size: 9, color: darkColor, maxWidth: 115 });
-      memberY += 32;
+    // Invoice badge - shifted further left
+    drawRect(395, headerY - 5, 110, 40, { fill: primaryColor });
+    drawText('INVOICE', 390, headerY + 15, { 
+      size: 16, 
+      bold: true, 
+      color: white, 
+      align: 'center', 
+      maxWidth: 110 
     });
     
-    // Billing Section with improved design
-    const billingY = Math.max(memberY + 35, 630);
+    // Header divider
+    drawLine(50, headerY + 50, 545, headerY + 50, primaryColor, 2);
     
-    drawText('Billing Summary', 50, billingY - 20, { size: 16, bold: true, color: primaryColor });
+    // INVOICE & BOOKING INFO SECTION
+    const infoY = headerY + 70;
     
-    // Billing Table Header with better styling
-    drawRect(50, billingY, 500, 32, { fill: primaryColor, strokeWidth: 0 });
-    drawText('Description', 65, billingY + 15, { size: 13, bold: true, color: white });
-    drawText('Amount', 470, billingY + 15, { size: 13, bold: true, color: white });
+    // Left box - Invoice Details
+    drawRect(50, infoY, 245, 85, { fill: lightGray, stroke: borderGray, strokeWidth: 1 });
+    drawText('Invoice Details', 60, infoY + 15, { size: 11, bold: true, color: darkColor });
+    drawLine(60, infoY + 25, 285, infoY + 25, borderGray, 0.5);
     
-    // Billing Rows with better spacing
-    let currentY = billingY + 32;
+    drawText('Invoice Number:', 60, infoY + 38, { size: 9, bold: true, color: grayColor });
+    drawText(invoiceData.invoiceNumber, 60, infoY + 50, { size: 9, color: darkColor });
     
-    // Event Booking Row with improved layout
-    drawRect(50, currentY, 500, 36, { fill: white, stroke: grayColor, strokeWidth: 0.5 });
-    drawText(`FusionX Event Booking`, 65, currentY + 12, { size: 12, bold: true, color: darkColor });
-    drawText(invoiceData.eventTitle, 65, currentY + 26, { size: 10, color: grayColor, maxWidth: 350 });
-    drawText(`Rs. ${invoiceData.subtotal.toLocaleString()}`, 470, currentY + 16, { size: 12, color: darkColor });
-    currentY += 36;
+    drawText('Invoice Date:', 60, infoY + 63, { size: 9, bold: true, color: grayColor });
+    drawText(invoiceData.invoiceDate, 60, infoY + 75, { size: 9, color: darkColor });
     
-    // Taxes if applicable
-    if (invoiceData.taxes && invoiceData.taxes > 0) {
-      drawRect(50, currentY, 500, 28, { fill: rgb(0.98, 0.98, 0.98), stroke: grayColor, strokeWidth: 0.5 });
-      drawText('Taxes & Fees', 65, currentY + 12, { size: 11, color: darkColor });
-      drawText(`Rs. ${invoiceData.taxes.toLocaleString()}`, 470, currentY + 12, { size: 11, color: darkColor });
-      currentY += 28;
+    // Right box - Booking Summary
+    drawRect(305, infoY, 245, 85, { fill: lightGray, stroke: borderGray, strokeWidth: 1 });
+    drawText('Booking Summary', 315, infoY + 15, { size: 11, bold: true, color: darkColor });
+    drawLine(315, infoY + 25, 540, infoY + 25, borderGray, 0.5);
+    
+    drawText(`Event: ${invoiceData.eventTitle}`, 315, infoY + 38, { size: 9, color: darkColor, maxWidth: 220 });
+    drawText(`Members: ${invoiceData.members.length}`, 315, infoY + 50, { size: 9, color: darkColor });
+    drawText(`Total: Rs. ${invoiceData.totalAmount.toLocaleString()}`, 315, infoY + 63, { 
+      size: 10, 
+      bold: true, 
+      color: accentColor 
+    });
+    drawText('Status: PAID', 420, infoY + 63, { size: 9, bold: true, color: successGreen });
+    
+    // CUSTOMER & PAYMENT SECTION
+    const customerY = infoY + 105;
+    
+    // Bill To section
+    drawText('Bill To:', 50, customerY, { size: 12, bold: true, color: darkColor });
+    drawRect(50, customerY + 18, 245, 75, { fill: white, stroke: borderGray, strokeWidth: 1 });
+    
+    drawText(invoiceData.customerName, 60, customerY + 32, { size: 11, bold: true, color: darkColor });
+    drawText(invoiceData.customerEmail, 60, customerY + 47, { size: 9, color: grayColor, maxWidth: 225 });
+    drawText(invoiceData.customerPhone, 60, customerY + 60, { size: 9, color: grayColor });
+    drawText('Primary Contact', 60, customerY + 75, { size: 8, color: grayColor });
+    
+    // Payment Details section
+    drawText('Payment Details:', 305, customerY, { size: 12, bold: true, color: darkColor });
+    drawRect(305, customerY + 18, 245, 75, { fill: white, stroke: borderGray, strokeWidth: 1 });
+    
+    drawText('Payment ID:', 315, customerY + 32, { size: 9, bold: true, color: grayColor });
+    drawText(invoiceData.paymentId, 315, customerY + 44, { size: 8, color: darkColor, maxWidth: 220 });
+    
+    drawText(`Method: ${invoiceData.paymentMethod}`, 315, customerY + 60, { 
+      size: 10, 
+      bold: true, 
+      color: accentColor 
+    });
+    drawText(`Date: ${invoiceData.paymentDate}`, 315, customerY + 75, { size: 9, color: grayColor });
+    
+    // EVENT DETAILS SECTION
+    const eventY = customerY + 110;
+    
+    drawText('Event Details', 50, eventY, { size: 13, bold: true, color: darkColor });
+    drawRect(50, eventY + 18, 500, 100, { fill: lightGray, stroke: borderGray, strokeWidth: 1 });
+    
+    // Event info - left column
+    drawText('Event:', 60, eventY + 33, { size: 9, bold: true, color: grayColor });
+    drawText(invoiceData.eventTitle, 60, eventY + 46, { size: 11, bold: true, color: primaryColor, maxWidth: 220 });
+    
+    drawText('Date & Time:', 60, eventY + 65, { size: 9, bold: true, color: grayColor });
+    drawText(`${invoiceData.eventDate}`, 60, eventY + 77, { size: 9, color: darkColor });
+    drawText(`${invoiceData.eventTime}`, 60, eventY + 89, { size: 9, color: darkColor });
+    
+    // Event info - right column
+    drawText('Booking Code:', 310, eventY + 33, { size: 9, bold: true, color: grayColor });
+    drawText(invoiceData.bookingCode, 310, eventY + 46, { size: 13, bold: true, color: warningOrange });
+    
+    if (invoiceData.venue) {
+      drawText('Venue:', 310, eventY + 65, { size: 9, bold: true, color: grayColor });
+      drawText(invoiceData.venue, 310, eventY + 77, { size: 9, color: darkColor, maxWidth: 230 });
     }
     
-    // Discount if applicable
+    drawText(`Total Members: ${invoiceData.members.length}`, 310, eventY + 95, { 
+      size: 9, 
+      bold: true, 
+      color: accentColor 
+    });
+    
+    // PRIMARY CONTACT SECTION
+    const primaryY = eventY + 135;
+    
+    drawText('Primary Contact Details:', 50, primaryY, { size: 12, bold: true, color: darkColor });
+    drawRect(50, primaryY + 18, 500, 40, { fill: rgb(0.95, 1, 0.95), stroke: primaryColor, strokeWidth: 1 });
+    
+    const primaryMember = invoiceData.members[0];
+    drawText(`Name: ${primaryMember.name}`, 60, primaryY + 30, { size: 9, bold: true, color: darkColor });
+    drawText(`Email: ${primaryMember.email}`, 60, primaryY + 43, { size: 8, color: grayColor });
+    drawText(`Phone: ${primaryMember.phone}`, 300, primaryY + 30, { size: 8, color: grayColor });
+    
+    const primaryCode = primaryMember.memberCode || generateFallbackMemberCode(invoiceData.bookingCode, 0);
+    drawText(`Member Code: ${primaryCode}`, 300, primaryY + 43, { 
+      size: 9, 
+      bold: true, 
+      color: primaryColor 
+    });
+    
+    // MEMBERS TABLE SECTION
+    const tableY = primaryY + 75;
+    
+    drawText('All Member Codes:', 50, tableY, { size: 12, bold: true, color: darkColor });
+    
+    // Table header
+    drawRect(50, tableY + 18, 500, 22, { fill: darkColor });
+    drawText('#', 60, tableY + 30, { size: 9, bold: true, color: white });
+    drawText('Member Code', 95, tableY + 30, { size: 9, bold: true, color: white });
+    drawText('Member Name', 240, tableY + 30, { size: 9, bold: true, color: white });
+    
+    // Table rows
+    let memberRowY = tableY + 40;
+    invoiceData.members.forEach((member, index) => {
+      const rowColor = index % 2 === 0 ? white : rgb(0.98, 0.98, 0.98);
+      drawRect(50, memberRowY, 500, 22, { fill: rowColor, stroke: borderGray, strokeWidth: 0.5 });
+      
+      drawText(`${index + 1}`, 60, memberRowY + 12, { size: 8, color: grayColor });
+      
+      const memberCode = member.memberCode || generateFallbackMemberCode(invoiceData.bookingCode, index);
+      drawText(memberCode, 95, memberRowY + 12, { size: 8, bold: true, color: accentColor });
+      
+      drawText(member.name, 240, memberRowY + 12, { size: 8, color: darkColor, maxWidth: 300 });
+      
+      memberRowY += 22;
+    });
+    
+    // BILLING SECTION
+    const billingY = memberRowY + 25;
+    
+    drawText('Billing Summary', 50, billingY, { size: 13, bold: true, color: darkColor });
+    
+    // Billing header
+    drawRect(50, billingY + 18, 500, 22, { fill: darkColor });
+    drawText('Description', 60, billingY + 30, { size: 9, bold: true, color: white });
+    drawText('Amount', 455, billingY + 30, { size: 9, bold: true, color: white, align: 'right', maxWidth: 85 });
+    
+    let billY = billingY + 40;
+    
+    // Event booking line
+    drawRect(50, billY, 500, 28, { fill: white, stroke: borderGray, strokeWidth: 0.5 });
+    drawText('FusionX Event Booking', 60, billY + 10, { size: 9, bold: true, color: darkColor });
+    drawText(invoiceData.eventTitle, 60, billY + 21, { size: 8, color: grayColor, maxWidth: 350 });
+    drawText(`Rs. ${invoiceData.subtotal.toLocaleString()}`, 455, billY + 15, { 
+      size: 9, 
+      color: darkColor, 
+      align: 'right', 
+      maxWidth: 85 
+    });
+    billY += 28;
+    
+    // Discount row if applicable
     if (invoiceData.discount && invoiceData.discount > 0) {
-      drawRect(50, currentY, 500, 28, { fill: rgb(0.95, 1, 0.95), stroke: grayColor, strokeWidth: 0.5 });
-      drawText('Discount Applied', 65, currentY + 12, { size: 11, color: rgb(0, 0.6, 0) });
-      drawText(`-Rs. ${invoiceData.discount.toLocaleString()}`, 470, currentY + 12, { size: 11, color: rgb(0, 0.6, 0) });
-      currentY += 28;
+      drawRect(50, billY, 500, 22, { fill: rgb(0.95, 1, 0.95), stroke: successGreen, strokeWidth: 0.5 });
+      const discountText = invoiceData.members.length === 5 
+        ? 'Group Discount (5 Members - 10% Off)' 
+        : 'Discount Applied';
+      drawText(discountText, 60, billY + 12, { size: 9, bold: true, color: successGreen });
+      drawText(`-Rs. ${invoiceData.discount.toLocaleString()}`, 455, billY + 12, { 
+        size: 9, 
+        bold: true, 
+        color: successGreen, 
+        align: 'right', 
+        maxWidth: 85 
+      });
+      billY += 22;
     }
     
-    // Total Row with enhanced styling and proper alignment
-    drawRect(50, currentY, 500, 42, { fill: darkColor, strokeWidth: 0 });
-    drawText('TOTAL AMOUNT', 65, currentY + 18, { size: 16, bold: true, color: white });
-    drawText(`Rs. ${invoiceData.totalAmount.toLocaleString()}`, 470, currentY + 18, { size: 16, bold: true, color: primaryColor });
+    // Total row
+    drawRect(50, billY, 500, 32, { fill: darkColor });
+    drawText('TOTAL AMOUNT', 60, billY + 17, { size: 12, bold: true, color: white });
+    drawText(`Rs. ${invoiceData.totalAmount.toLocaleString()}`, 455, billY + 17, { 
+      size: 12, 
+      bold: true, 
+      color: primaryColor, 
+      align: 'right', 
+      maxWidth: 85 
+    });
     
-    // Footer with better spacing and design - ensure it fits on page
-    const footerY = currentY + 50;
+    // FOOTER SECTION
+    const footerY = billY + 50;
     
-    // Check if we need a new page or adjust spacing
-    const remainingSpace = height - (height - footerY);
-    const needsCompactFooter = remainingSpace < 150;
+    // Notes section if available
+    if (invoiceData.notes) {
+      drawText('Additional Notes:', 50, footerY, { size: 11, bold: true, color: darkColor });
+      drawRect(50, footerY + 15, 500, 35, { fill: rgb(0.99, 0.99, 1), stroke: borderGray, strokeWidth: 0.5 });
+      drawText(invoiceData.notes, 60, footerY + 30, { size: 9, color: darkColor, maxWidth: 480 });
+    }
     
+    // Company footer
+    const companyFooterY = invoiceData.notes ? footerY + 70 : footerY + 20;
     
-    // Separator line
-    const companyFooterY = footerY + (invoiceData.notes ? (needsCompactFooter ? 45 : 55) : 15);
-    drawLine(50, companyFooterY, 550, companyFooterY, grayColor, 1);
+    drawLine(50, companyFooterY, 545, companyFooterY, primaryColor, 1.5);
     
-    // Company Footer with better formatting - ensure it stays on page
-    const footerSpacing = needsCompactFooter ? 12 : 18;
-    drawText('Thank you for choosing FusionX Events!', 50, companyFooterY + footerSpacing, { size: 11, bold: true, color: primaryColor });
-    drawText('For queries, contact: events@glitzfusion.in | +91-XXXXXXXXXX', 50, companyFooterY + footerSpacing + 18, { size: 9, color: grayColor });
-    drawText('This is a computer-generated invoice and does not require a signature.', 50, companyFooterY + footerSpacing + 32, { size: 8, color: grayColor });
+    drawText('Thank you for choosing FusionX Events!', 50, companyFooterY + 15, { 
+      size: 11, 
+      bold: true, 
+      color: primaryColor 
+    });
     
-    // Watermark - "PAID" with better positioning
+    drawText('Email: events@glitzfusion.in  |  Phone: +91-XXXXXXXXXX  |  Web: www.glitzfusion.in', 
+      50, companyFooterY + 30, { size: 8, color: grayColor });
+    
+    drawText('This is a computer-generated invoice. No signature required.', 
+      50, companyFooterY + 43, { size: 7, color: grayColor });
+    
+    drawText('Present individual member codes at event entrance for entry.', 
+      50, companyFooterY + 56, { size: 8, bold: true, color: warningOrange });
+    
+    // PAID Watermark
     page.drawText('PAID', {
-      x: 220,
-      y: height - 400,
-      size: 50,
+      x: 210,
+      y: height / 2 - 20,
+      size: 80,
       font: boldFont,
-      color: rgb(0.92, 0.92, 0.92),
-      opacity: 0.3
+      color: rgb(0, 0.7, 0.3),
+      opacity: 0.08
     });
     
     // Serialize the PDF
@@ -302,7 +410,6 @@ export function generateInvoiceNumber(bookingCode: string, paymentId: string): s
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   
-  // Format: FX-YYYY-MM-DD-BOOKINGCODE-LAST4DIGITS
   const last4Digits = paymentId.slice(-4).toUpperCase();
   return `FX-${year}-${month}-${day}-${bookingCode}-${last4Digits}`;
 }

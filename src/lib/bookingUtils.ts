@@ -49,6 +49,32 @@ export async function generateUniqueBookingCode(): Promise<string> {
 }
 
 /**
+ * Generates individual member codes
+ * - Primary member (index 0) gets the main booking code
+ * - Other members get random 6-character codes
+ */
+export function generateMemberCodes(mainBookingCode: string, memberCount: number): string[] {
+  const memberCodes: string[] = [];
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  
+  for (let i = 0; i < memberCount; i++) {
+    if (i === 0) {
+      // Primary member gets the main booking code
+      memberCodes.push(mainBookingCode);
+    } else {
+      // Other members get random codes
+      let memberCode = '';
+      for (let j = 0; j < 6; j++) {
+        memberCode += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      memberCodes.push(memberCode);
+    }
+  }
+  
+  return memberCodes;
+}
+
+/**
  * Validates booking code format
  */
 export function isValidBookingCode(code: string): boolean {
@@ -58,17 +84,27 @@ export function isValidBookingCode(code: string): boolean {
 
 /**
  * Calculates total booking amount based on pricing and number of members
+ * Applies 10% group discount for 5 members
  */
 export function calculateBookingAmount(pricePerPerson: number, memberCount: number): number {
   if (memberCount < 1 || memberCount > 5) {
     throw new Error('Member count must be between 1 and 5');
   }
   
-  return pricePerPerson * memberCount;
+  let total = pricePerPerson * memberCount;
+  
+  // Apply 10% group discount for 5 members
+  if (memberCount === 5) {
+    total = total * 0.9; // 10% discount
+  }
+  
+  return Math.round(total); // Round to nearest rupee
 }
 
 /**
- * Validates member data
+ * Validates member data with new logic:
+ * - Only primary contact (index 0) needs email and phone
+ * - Other members only need names
  */
 export function validateMemberData(members: Array<{ name: string; email: string; phone: string }>): string[] {
   const errors: string[] = [];
@@ -84,36 +120,34 @@ export function validateMemberData(members: Array<{ name: string; email: string;
   
   members.forEach((member, index) => {
     const memberNum = index + 1;
+    const isPrimary = index === 0;
     
+    // Name is required for all members
     if (!member.name || member.name.trim().length === 0) {
       errors.push(`Member ${memberNum}: Name is required`);
     }
     
-    if (!member.email || member.email.trim().length === 0) {
-      errors.push(`Member ${memberNum}: Email is required`);
-    } else {
-      const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
-      if (!emailRegex.test(member.email)) {
-        errors.push(`Member ${memberNum}: Invalid email format`);
+    // Email and phone only required for primary contact
+    if (isPrimary) {
+      if (!member.email || member.email.trim().length === 0) {
+        errors.push(`Primary contact: Email is required`);
+      } else {
+        const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
+        if (!emailRegex.test(member.email)) {
+          errors.push(`Primary contact: Invalid email format`);
+        }
       }
-    }
-    
-    if (!member.phone || member.phone.trim().length === 0) {
-      errors.push(`Member ${memberNum}: Phone number is required`);
-    } else {
-      const phoneRegex = /^[+]?[\d\s\-\(\)]{10,15}$/;
-      if (!phoneRegex.test(member.phone)) {
-        errors.push(`Member ${memberNum}: Invalid phone number format`);
+      
+      if (!member.phone || member.phone.trim().length === 0) {
+        errors.push(`Primary contact: Phone number is required`);
+      } else {
+        const phoneRegex = /^[+]?[\d\s\-\(\)]{10,15}$/;
+        if (!phoneRegex.test(member.phone)) {
+          errors.push(`Primary contact: Invalid phone number format`);
+        }
       }
     }
   });
-  
-  // Check for duplicate emails
-  const emails = members.map(m => m.email.toLowerCase());
-  const uniqueEmails = new Set(emails);
-  if (emails.length !== uniqueEmails.size) {
-    errors.push('Duplicate email addresses are not allowed');
-  }
   
   return errors;
 }

@@ -5,6 +5,7 @@ export interface IBookingMember {
   name: string;
   email: string;
   phone: string;
+  memberCode?: string; // Individual code for each member
 }
 
 // Interface for the main booking document
@@ -40,16 +41,22 @@ const BookingMemberSchema = new Schema<IBookingMember>({
   },
   email: {
     type: String,
-    required: true,
+    required: false, // We'll validate this in the booking validation logic
     trim: true,
     lowercase: true,
     match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email']
   },
   phone: {
     type: String,
-    required: true,
+    required: false, // We'll validate this in the booking validation logic
     trim: true,
     match: [/^[+]?[\d\s\-\(\)]{10,15}$/, 'Please enter a valid phone number']
+  },
+  memberCode: {
+    type: String,
+    required: false,
+    trim: true,
+    maxlength: 10
   }
 });
 

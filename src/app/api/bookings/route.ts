@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Booking from '@/models/Booking';
 import { FusionXEvent } from '@/models/FusionXEvent';
-import { generateUniqueBookingCode, validateMemberData, calculateBookingAmount, formatBookingConfirmation } from '@/lib/bookingUtils';
+import { generateUniqueBookingCode, validateMemberData, calculateBookingAmount, generateMemberCodes, formatBookingConfirmation } from '@/lib/bookingUtils';
 import { sendBookingConfirmationEmail } from '@/lib/emailService';
 
 function withCors(response: NextResponse, request?: NextRequest) {
@@ -134,6 +134,15 @@ export async function POST(request: NextRequest) {
 
     // Generate unique booking code
     const bookingCode = await generateUniqueBookingCode();
+    
+    // Generate individual member codes
+    const memberCodes = generateMemberCodes(bookingCode, members.length);
+    
+    // Assign member codes to each member
+    const membersWithCodes = members.map((member: any, index: number) => ({
+      ...member,
+      memberCode: memberCodes[index]
+    }));
 
     // Create booking
     const booking = new Booking({
@@ -144,7 +153,7 @@ export async function POST(request: NextRequest) {
       selectedTime,
       selectedPricing,
       totalAmount,
-      members,
+      members: membersWithCodes,
       primaryContact: {
         name: members[0].name,
         email: members[0].email,
