@@ -161,24 +161,41 @@ export default function EventDetailsPage() {
     try {
       const token = localStorage.getItem('admin_token')
       const uploadPromises = Array.from(files).map(async (file) => {
-        const formData = new FormData()
-        formData.append('file', file)
-        formData.append('type', 'highlights')
-        formData.append('eventId', eventId)
-
-        const response = await fetch('/api/upload', {
+        // 1) Get signed URL for highlights upload
+        const signRes = await fetch('/api/upload/sign', {
           method: 'POST',
           headers: {
+            'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          body: formData
+          body: JSON.stringify({
+            fileName: file.name,
+            fileType: file.type,
+            uploadType: 'highlights',
+            eventId: eventId
+          })
         })
 
-        if (response.ok) {
-          const result = await response.json()
-          return result.url
+        if (!signRes.ok) {
+          throw new Error('Failed to get signed URL')
         }
-        throw new Error('Upload failed')
+
+        const { uploadUrl, publicUrl } = await signRes.json()
+
+        // 2) Upload directly to R2
+        const uploadRes = await fetch(uploadUrl, {
+          method: 'PUT',
+          body: file,
+          headers: {
+            'Content-Type': file.type
+          }
+        })
+
+        if (!uploadRes.ok) {
+          throw new Error('Failed to upload to R2')
+        }
+
+        return publicUrl
       })
 
       const uploadedUrls = await Promise.all(uploadPromises)

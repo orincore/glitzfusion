@@ -29,29 +29,47 @@ export default function CreateHeroMediaPage() {
   const handleMediaUpload = async (file: File) => {
     setUploadingMedia(true)
     try {
-      const uploadFormData = new FormData()
-      uploadFormData.append('file', file)
-      uploadFormData.append('type', 'hero')
-
       const token = localStorage.getItem('admin_token')
-      const response = await fetch('/api/upload', {
+      
+      // 1) Get signed URL for hero media upload
+      const signRes = await fetch('/api/upload/sign', {
         method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: uploadFormData
+        body: JSON.stringify({
+          fileName: file.name,
+          fileType: file.type,
+          uploadType: 'hero'
+        })
       })
 
-      if (response.ok) {
-        const result = await response.json()
-        setFormData(prev => ({ 
-          ...prev, 
-          mediaUrl: result.url,
-          mediaType: result.filename.match(/\.(mp4|webm|mov)$/i) ? 'video' : 'image'
-        }))
-      } else {
-        console.error('Failed to upload media')
+      if (!signRes.ok) {
+        throw new Error('Failed to get signed URL')
       }
+
+      const { uploadUrl, publicUrl } = await signRes.json()
+
+      // 2) Upload directly to R2
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type
+        }
+      })
+
+      if (!uploadRes.ok) {
+        throw new Error('Failed to upload to R2')
+      }
+
+      // 3) Update form data with public URL
+      setFormData(prev => ({ 
+        ...prev, 
+        mediaUrl: publicUrl,
+        mediaType: file.name.match(/\.(mp4|webm|mov)$/i) ? 'video' : 'image'
+      }))
     } catch (error) {
       console.error('Error uploading media:', error)
     } finally {
