@@ -16,12 +16,9 @@ import { getTokenFromRequest, verifyToken } from '@/lib/auth';
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 5 minutes timeout for large uploads
 
-// Configure body parser for larger files
+// Mark route as dynamic and disable static caching for uploads
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-
-// Disable Next.js body parsing to handle large files manually
-export const bodyParser = false;
 
 export async function POST(request: NextRequest) {
   try {
