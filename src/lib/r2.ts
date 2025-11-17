@@ -34,6 +34,35 @@ export function generateR2Key(folder: string, eventId: string, originalFilename:
   return `${folder}/${eventId}/${timestamp}_${sanitizedName}`;
 }
 
+// Generate a signed URL for direct browser upload to R2
+export async function getSignedR2UploadUrl(
+  folder: string,
+  eventId: string,
+  originalFilename: string,
+  contentType: string,
+  expiresInSeconds = 3600
+): Promise<{ uploadUrl: string; key: string; publicUrl: string }> {
+  const key = generateR2Key(folder, eventId, originalFilename);
+
+  const command = new PutObjectCommand({
+    Bucket: BUCKET_NAME,
+    Key: key,
+    ContentType: contentType,
+    // Make uploaded files publicly readable
+    ACL: 'public-read',
+  });
+
+  const uploadUrl = await getSignedUrl(r2Client, command, {
+    expiresIn: expiresInSeconds,
+  });
+
+  return {
+    uploadUrl,
+    key,
+    publicUrl: `${R2_PUBLIC_URL}/${key}`,
+  };
+}
+
 // Upload file to R2
 export async function uploadToR2(
   file: Buffer,

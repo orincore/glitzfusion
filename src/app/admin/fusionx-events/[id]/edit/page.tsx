@@ -180,26 +180,50 @@ export default function EditFusionXEventPage() {
     if (!id) return
     setUploadingPoster(true)
     try {
-      const uploadFormData = new FormData()
-      uploadFormData.append('file', file)
-      uploadFormData.append('type', 'poster')
-      uploadFormData.append('eventId', id)
-
       const token = localStorage.getItem('admin_token')
-      const response = await fetch('/api/upload', {
+      if (!token) {
+        setError('Not authenticated')
+        return
+      }
+
+      // 1) Ask backend for a signed R2 upload URL
+      const signRes = await fetch('/api/upload/sign', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
-        body: uploadFormData
+        body: JSON.stringify({
+          fileName: file.name,
+          fileType: file.type,
+          uploadType: 'poster',
+          eventId: id,
+        }),
       })
 
-      if (response.ok) {
-        const result = await response.json()
-        setFormData(prev => prev ? { ...prev, poster: result.url } : null)
-      } else {
-        setError('Failed to upload poster')
+      if (!signRes.ok) {
+        setError('Failed to prepare poster upload')
+        return
       }
+
+      const { uploadUrl, publicUrl } = await signRes.json()
+
+      // 2) Upload file directly to R2 using signed URL
+      const putRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': file.type,
+        },
+        body: file,
+      })
+
+      if (!putRes.ok) {
+        setError('Failed to upload poster to storage')
+        return
+      }
+
+      // 3) Save final public URL in form state
+      setFormData(prev => prev ? { ...prev, poster: publicUrl } : null)
     } catch (error) {
       setError('Error uploading poster')
     } finally {
@@ -211,26 +235,50 @@ export default function EditFusionXEventPage() {
     if (!id) return
     setUploadingTicketTemplate(true)
     try {
-      const uploadFormData = new FormData()
-      uploadFormData.append('file', file)
-      uploadFormData.append('type', 'ticket-template')
-      uploadFormData.append('eventId', id)
-
       const token = localStorage.getItem('admin_token')
-      const response = await fetch('/api/upload', {
+      if (!token) {
+        setError('Not authenticated')
+        return
+      }
+
+      // 1) Get signed URL for ticket template upload
+      const signRes = await fetch('/api/upload/sign', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
-        body: uploadFormData
+        body: JSON.stringify({
+          fileName: file.name,
+          fileType: file.type,
+          uploadType: 'ticket-template',
+          eventId: id,
+        }),
       })
 
-      if (response.ok) {
-        const result = await response.json()
-        setFormData(prev => prev ? { ...prev, ticketTemplate: result.url } : null)
-      } else {
-        setError('Failed to upload ticket template')
+      if (!signRes.ok) {
+        setError('Failed to prepare ticket template upload')
+        return
       }
+
+      const { uploadUrl, publicUrl } = await signRes.json()
+
+      // 2) Upload file directly to R2
+      const putRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': file.type,
+        },
+        body: file,
+      })
+
+      if (!putRes.ok) {
+        setError('Failed to upload ticket template to storage')
+        return
+      }
+
+      // 3) Store final URL
+      setFormData(prev => prev ? { ...prev, ticketTemplate: publicUrl } : null)
     } catch (error) {
       setError('Error uploading ticket template')
     } finally {
@@ -267,26 +315,47 @@ export default function EditFusionXEventPage() {
     setUploadingHighlights(true)
     try {
       const token = localStorage.getItem('admin_token')
-      const uploadPromises = Array.from(files).map(async (file) => {
-        const formData = new FormData()
-        formData.append('file', file)
-        formData.append('type', 'highlights')
-        formData.append('eventId', id)
+      if (!token) {
+        setError('Not authenticated')
+        return
+      }
 
-        const response = await fetch('/api/upload', {
+      const uploadPromises = Array.from(files).map(async (file) => {
+        // 1) Get signed URL for each highlight file
+        const signRes = await fetch('/api/upload/sign', {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${token ?? ''}`,
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
           },
-          body: formData,
+          body: JSON.stringify({
+            fileName: file.name,
+            fileType: file.type,
+            uploadType: 'highlights',
+            eventId: id,
+          }),
         })
 
-        if (!response.ok) {
-          throw new Error(`Failed to upload ${file.name}`)
+        if (!signRes.ok) {
+          throw new Error(`Failed to prepare upload for ${file.name}`)
         }
 
-        const result = await response.json()
-        return result.url
+        const { uploadUrl, publicUrl } = await signRes.json()
+
+        // 2) Upload directly to R2
+        const putRes = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': file.type,
+          },
+          body: file,
+        })
+
+        if (!putRes.ok) {
+          throw new Error(`Failed to upload ${file.name} to storage`)
+        }
+
+        return publicUrl as string
       })
 
       const uploadedUrls = await Promise.all(uploadPromises)
